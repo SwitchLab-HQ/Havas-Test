@@ -237,12 +237,29 @@ var HG = (function () {
 
   // Fires on touchend or click, once. Works while another finger is already down
   // (iOS doesn't synthesise click for a 2nd-finger tap).
+  // A touch that moved (a swipe / scroll) is not a tap: scrolling a list never opens what's under the finger.
+  var TAP_SLOP = 10;
   function onTap(node, fn) {
-    var lastTouch = 0;
+    var lastTouch = 0, start = null;
+    node.addEventListener('touchstart', function (e) {
+      var t = e.changedTouches[0], sc = e.target.closest && e.target.closest('.hg-scroll');
+      start = { id: t.identifier, x: t.clientX, y: t.clientY, moved: false, sc: sc, top: sc ? sc.scrollTop : 0 };
+    }, { passive: true });
+    node.addEventListener('touchmove', function (e) {
+      if (!start) return;
+      for (var i = 0; i < e.changedTouches.length; i++) {
+        var t = e.changedTouches[i];
+        if (t.identifier === start.id && Math.hypot(t.clientX - start.x, t.clientY - start.y) > TAP_SLOP) start.moved = true;
+      }
+    }, { passive: true });
     node.addEventListener('touchend', function (e) {
+      lastTouch = Date.now();
+      var s = start; start = null;
+      if (s && (s.moved || (s.sc && Math.abs(s.sc.scrollTop - s.top) > 2))) return;   // it was a swipe
       e.preventDefault(); e.stopPropagation();
-      lastTouch = Date.now(); fn(e);
+      fn(e);
     }, { passive: false });
+    node.addEventListener('touchcancel', function () { start = null; lastTouch = Date.now(); }, { passive: true });
     node.addEventListener('click', function (e) {
       if (Date.now() - lastTouch < 600) return;
       fn(e);

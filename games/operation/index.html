@@ -29,10 +29,10 @@
     #play { padding:15px 20px 12px; gap:8px; }
     .hg-banner-body { right:90px; gap:9px; }
     .touches { align-self:flex-start; font-family:var(--f-body); font-weight:700; font-size:11px; color:#fff; background:var(--dark-blue); padding:5px 10px; border-radius:12px; }
-    .boardwrap { --s: min(350px, 92vw, calc(100vh - 44px - 15px - 121px - 8px - 70px)); width:var(--s); height:var(--s); position:relative; flex-shrink:0; border-radius:calc(var(--s) * 0.0914); background:#fff; }
+    .boardwrap { --s: min(350px, 92vw, calc(100vh - 44px - 15px - 121px - 8px - 130px)); width:var(--s); height:var(--s); position:relative; flex-shrink:0; border-radius:calc(var(--s) * 0.0914); background:#fff; }
     .boardwrap .art { position:absolute; inset:3.43%; border-radius:calc(var(--s) * 0.063); background:#d5d9df; }
-    canvas { position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
-    .tipline { min-height:40px; padding:0 20px; }
+    canvas { position:absolute; left:0; top:0; width:100%; height:calc(100% + 76px); display:block; touch-action:none; z-index:2; }
+    .tipline { min-height:40px; padding:0 20px; margin-top:66px; }
     /* BZZT! (O6): whole screen goes orange for a moment */
     .bzzt { position:fixed; inset:0; z-index:40; display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px; pointer-events:none;
       background:rgba(246,138,30,0.82); }
@@ -69,7 +69,7 @@
         <div class="hg-banner-right" id="timerslot"></div>
       </div>
       <div class="boardwrap" id="boardwrap"><div class="art"></div><canvas id="cv"></canvas></div>
-      <div class="note tipline" id="tipline">Timer starts when your finger touches the tweezers</div>
+      <div class="note tipline" id="tipline">Put your finger on the tweezers handle. The timer starts then</div>
     </div>
 
     <div id="turnend" class="screen stack"></div>   <!-- O4 / O8 -->
@@ -107,7 +107,7 @@
     // ── Turn state ──
     var phase = 'idle';   // idle | ready (O1, waiting for pick-up) | run (O2) | over
     var touches = 0, inWall = false, graceUntil = 0, maxProg = 0, firstPickup = true, picked = false;
-    var trackId = null, ring = { x: 0, y: 0 }, finger = null;
+    var trackId = null, ring = { x: 0, y: 0 }, finger = null, offX = 0, offY = 0;
     var clock = HG.Clock(), hudTimer = null, raf = null, turnStarted = false;
     var timer = HG.timerRing(); document.getElementById('timerslot').appendChild(timer.el);
 
@@ -133,7 +133,7 @@
       startPt = samples[0]; exitPt = samples[samples.length - 1];
     }
     function layout() {
-      var r = wrap.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
       cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
       k = r.width / B;                                   // CSS px per board unit
       ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);    // draw in board units
@@ -150,7 +150,7 @@
 
     // ── Drawing (board units) ──
     function draw(now) {
-      ctx.clearRect(0, 0, B, B);
+      ctx.clearRect(0, 0, B, B + 120);
       var P = PATHS[pathIdx];
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       ctx.strokeStyle = '#001f3b'; ctx.lineWidth = P.halfW * 2 + 10; ctx.stroke(path2d);   // walls
@@ -160,31 +160,45 @@
       ctx.fillStyle = '#d5d9df'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#001f3b'; ctx.stroke();
       ctx.fillStyle = '#001f3b'; ctx.font = '900 11px "Alan Sans", Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText('EXIT', exitPt.x, exitPt.y + 4);
-      // Start pad / grip: on the path start before the first pick-up, under the ring after a pause
+      // Tweezers: handle (TOUCH HERE) 60 px under the ring, so the finger never hides the start dot.
       if (phase === 'ready') {
-        var pad = picked ? { x: ring.x, y: ring.y + CFG.GRIP_OFFSET / k } : startPt;
+        var g = grip();
+        drawTweezers(g.x, g.y);
         var pulse = 1 + 0.15 * Math.sin((now || 0) / 200);
-        ctx.fillStyle = 'rgba(78,198,224,0.4)'; ctx.beginPath(); ctx.arc(pad.x, pad.y, 36 * pulse, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(78,198,224,0.4)'; ctx.beginPath(); ctx.arc(g.x, g.y, 34 * pulse, 0, 7); ctx.fill();
         ctx.fillStyle = '#4ec6e0'; ctx.strokeStyle = '#001f3b'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(pad.x, pad.y, CFG.PAD_R, 0, 7); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.arc(g.x, g.y, CFG.PAD_R, 0, 7); ctx.fill(); ctx.stroke();
         ctx.fillStyle = '#001f3b'; ctx.font = '900 9px "Alan Sans", Arial';
-        ctx.fillText('TOUCH', pad.x, pad.y - 5); ctx.fillText('HERE', pad.x, pad.y + 6);
+        ctx.fillText('TOUCH', g.x, g.y - 5); ctx.fillText('HERE', g.x, g.y + 6);
+        drawRing();
       }
-      if (picked) drawTool();
+      if (phase !== 'ready' && picked) drawTool();
+    }
+    function grip() { return { x: ring.x, y: ring.y + CFG.GRIP_OFFSET / k }; }
+    // Two arms from the handle up to the tips, which hold the ring (tool = bone).
+    function drawTweezers(hx, hy) {
+      ctx.lineCap = 'round';
+      [[-1], [1]].forEach(function (sd) {
+        ctx.strokeStyle = '#001f3b'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(hx + sd[0] * 8, hy - 6); ctx.lineTo(ring.x + sd[0] * (CFG.RING_R - 2), ring.y + 4); ctx.stroke();
+        ctx.strokeStyle = '#cfd6de'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(hx + sd[0] * 8, hy - 6); ctx.lineTo(ring.x + sd[0] * (CFG.RING_R - 2), ring.y + 4); ctx.stroke();
+      });
+    }
+    function drawRing() {
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = inWall ? '#ea3557' : '#001f3b'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(ring.x, ring.y, CFG.RING_R, 0, 7); ctx.fill(); ctx.stroke();
     }
     function roundRect(x, y, w, h, r) {
       ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
       ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
     }
     function drawTool() {
-      // Tweezers line from the finger to the ring (tool = bone), ring = hit point
-      if (phase === 'run' && finger) {
-        ctx.setLineDash([3, 3]); ctx.strokeStyle = '#001f3b'; ctx.lineWidth = 1.5;
-        ctx.beginPath(); ctx.moveTo(ring.x, ring.y + CFG.RING_R); ctx.lineTo(finger.x, finger.y); ctx.stroke(); ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(0,31,59,0.25)'; ctx.beginPath(); ctx.arc(finger.x, finger.y, 18, 0, 7); ctx.fill();
+      if (finger) {
+        drawTweezers(finger.x, finger.y);
+        ctx.fillStyle = 'rgba(0,31,59,0.22)'; ctx.beginPath(); ctx.arc(finger.x, finger.y, 18, 0, 7); ctx.fill();
       }
-      ctx.fillStyle = '#fff'; ctx.strokeStyle = inWall ? '#ea3557' : '#001f3b'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(ring.x, ring.y, CFG.RING_R, 0, 7); ctx.fill(); ctx.stroke();
+      drawRing();
     }
     function loop(now) { draw(now); raf = phase === 'ready' ? requestAnimationFrame(loop) : null; }
     function startLoop() { if (!raf) raf = requestAnimationFrame(loop); }
@@ -231,11 +245,11 @@
       if (phase !== 'ready' || HG.shell.isPaused()) return;
       for (var i = 0; i < e.changedTouches.length; i++) {
         var t = e.changedTouches[i], p = local(t);
-        var pad = picked ? { x: ring.x, y: ring.y + CFG.GRIP_OFFSET / k } : startPt;
-        if (Math.hypot(p.x - pad.x, p.y - pad.y) > CFG.PAD_R + 12) continue;   // anywhere else does nothing
+        var g = grip();
+        if (Math.hypot(p.x - g.x, p.y - g.y) > CFG.PAD_R + 14) continue;      // anywhere else does nothing
         trackId = t.identifier;
         finger = p;
-        ring = { x: p.x, y: p.y - CFG.GRIP_OFFSET / k };                     // clamp grip
+        offX = ring.x - p.x; offY = ring.y - p.y;                            // clamp grip: ring stays above the finger
         picked = true; phase = 'run';
         firstPickup = false;
         document.getElementById('tipline').style.visibility = 'hidden';
@@ -254,7 +268,7 @@
         var t = e.changedTouches[i];
         if (t.identifier !== trackId) continue;
         finger = local(t);
-        ring = { x: finger.x, y: finger.y - CFG.GRIP_OFFSET / k };
+        ring = { x: finger.x + offX, y: finger.y + offY };
         checkWalls();
         if (Math.hypot(ring.x - exitPt.x, ring.y - exitPt.y) < 14) return boneOut();
         draw();
