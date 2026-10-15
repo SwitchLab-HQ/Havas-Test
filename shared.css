@@ -1,0 +1,253 @@
+/* shared.css — Hasbro × Nestlé · The Mini Games · design system
+   Source: Figma "CPW-Hasbro - Mini Games", page "-- Design UI - 01" (2:635). Frame 390 × 664.
+   Fonts: Alan Sans (display, 900) · Inter Tight (UI) · Inter (small print). */
+
+:root {
+  /* Brand tokens (Figma variables) */
+  --dark-blue: #001f3b;
+  --green: #a7c919;
+  --yellow: #ffdd00;
+  --orange: #f68a1e;
+  --red: #ea3557;
+  --bright-blue: #0094da;
+  --light-blue: #4ec6e0;
+  --pink: #ee6ba3;
+
+  --f-display: 'Alan Sans', 'Arial Black', sans-serif;
+  --f-ui: 'Inter Tight', 'Inter', Arial, sans-serif;
+  --f-body: 'Inter', Arial, sans-serif;
+
+  --hg-header-h: 44px;
+  --hg-gutter: 20px;
+
+  /* Legacy aliases used by older markup */
+  --hg-font: var(--f-ui);
+  --hg-primary: var(--light-blue);
+  --hg-primary-ink: var(--dark-blue);
+  --hg-muted: rgba(0,31,59,0.6);
+}
+
+/* Multi-touch safe page */
+html, body { touch-action: none; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+* { -webkit-touch-callout: none; }
+
+/* ── Game themes: background pattern behind everything ── */
+body.hg-game { background-color: var(--dark-blue); background-repeat: repeat; background-position: top center; font-family: var(--f-ui); }
+body.theme-twister   { background-color: var(--green); background-image: url('games/twister/assets/bg-pattern.webp'); background-size: 626px 352px; }
+body.theme-connect4  { background-color: var(--bright-blue); background-image: url('games/connect4/assets/bg-pattern.webp'); background-size: cover; background-repeat: no-repeat; }
+body.theme-cluedo    { background-color: #0b2a4a; background-image: linear-gradient(rgba(0,148,218,0.22), rgba(0,148,218,0.22)), url('games/cluedo/assets/bg-pattern.webp'); background-size: auto, 620px auto; }
+body.theme-operation { background-color: var(--yellow); background-image: url('games/operation/assets/bg-pattern.webp'); background-size: 650px auto; }
+
+/* Scrollable areas (results, bracket, leaderboard): the only places a one-finger pan is allowed */
+.hg-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; }
+/* Centred when it fits, scrolls from the top when it doesn't */
+.hg-scroll.screen, .hg-scroll.center { justify-content: flex-start !important; }
+.hg-scroll.screen::before, .hg-scroll.screen::after { content: ''; margin: auto 0; flex: 0 0 0; }
+
+/* ── In-game header: ← · game logo × Nestlé · ❚❚ (dark blue, 44 px) ── */
+.hg-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60;
+  height: calc(var(--hg-header-h) + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 8px 0;
+  background: var(--dark-blue);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hg-header.inert { opacity: 0.45; pointer-events: none; }
+.hg-hbtn {
+  width: 44px; height: 44px; margin: 0 -9px; border: none; background: transparent; padding: 9px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer; touch-action: manipulation;
+}
+.hg-hbtn img { width: 26px; height: 26px; display: block; }
+.hg-hbtn:active img { transform: scale(0.9); }
+.hg-hlogo { display: flex; align-items: center; gap: 11px; height: 44px; }
+.hg-hlogo img { display: block; }
+.hg-hlogo .logo { height: 34px; width: auto; }
+.hg-hlogo .x { width: 10.6px; height: 10.6px; }
+.hg-hlogo .nestle { width: 72px; height: 20px; }
+.hg-hlogo .combined { height: 30px; width: auto; }
+.hg-hname { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* Game area under the header */
+.hg-body { position: absolute; left: 0; right: 0; bottom: 0; top: calc(var(--hg-header-h) + env(safe-area-inset-top, 0px)); }
+
+/* ── Type ── */
+.hg-title { font-family: var(--f-display); font-weight: 900; font-size: 42px; line-height: 1.15; color: #fff; text-align: center; }
+.hg-title.dark { color: var(--dark-blue); }
+.hg-title.shadow { -webkit-text-stroke: 8px var(--dark-blue); paint-order: stroke fill; }
+.hg-h2 { font-family: var(--f-display); font-weight: 900; font-size: 26px; line-height: 1.1; color: var(--dark-blue); text-transform: uppercase; }
+.hg-sub { font-family: var(--f-body); font-size: 14px; line-height: 1.35; color: var(--dark-blue); }
+.hg-sub.light { color: #fff; }
+.hg-small { font-family: var(--f-body); font-size: 12px; color: rgba(0,31,59,0.7); }
+
+/* Dark title bar: LEADERBOARD · ROUND RESULTS · THE VERDICT · BRACKET … */
+.hg-titlebar {
+  width: 100%; max-width: 370px; min-height: 60px; padding: 8px 16px; border-radius: 38px;
+  background: var(--dark-blue); border: 2px solid var(--light-blue);
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-family: var(--f-display); font-weight: 900; font-size: 34px; line-height: 1; color: #fff; text-transform: uppercase;
+}
+.hg-titlebar.sm { font-size: 26px; min-height: 52px; }
+/* Small dark pill: "ROUND 1 · MATCH 1 OF 2", "TURN 1 OF 5" */
+.hg-pill {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 20px;
+  background: var(--dark-blue); color: #fff; font-family: var(--f-display); font-weight: 900; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
+}
+
+/* "→ text" highlight lines (How to play, Terms, Players) */
+.hg-bullets { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; list-style: none; width: 100%; max-width: 340px; }
+.hg-bullets li {
+  display: inline-flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--dark-blue); color: #fff;
+  font-family: var(--f-ui); font-size: 16px; line-height: 18px; letter-spacing: 0.64px; text-align: left;
+}
+.hg-bullets li::before { content: ''; flex: 0 0 15px; height: 8px; background: url('assets/ui/icon-arrow.svg') center / contain no-repeat; }
+
+/* ── Buttons ── */
+.hg-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; max-width: 340px; min-height: 60px; padding: 12px 20px; flex-shrink: 0;
+  border: 4px solid var(--dark-blue); border-radius: 30px; cursor: pointer;
+  background: var(--light-blue); color: var(--dark-blue);
+  font-family: var(--f-display); font-weight: 900; font-size: 20px; line-height: 1.1; letter-spacing: 1px; text-transform: uppercase;
+  touch-action: manipulation; transition: transform 0.1s;
+}
+.hg-btn:active { transform: scale(0.97); }
+.hg-btn:disabled { opacity: 0.35; pointer-events: none; }
+.hg-btn-primary { background: var(--light-blue); }
+.hg-btn-ghost { background: #fff; }
+.hg-btn-row {
+  background: rgba(0,31,59,0.06); border: 2px solid rgba(0,31,59,0.15); justify-content: space-between;
+  font-size: 16px; letter-spacing: 0.5px; min-height: 52px; border-radius: 16px;
+}
+.hg-toggle { font-family: var(--f-ui); font-weight: 700; font-size: 13px; letter-spacing: 0; padding: 4px 12px; border-radius: 20px; background: rgba(0,31,59,0.15); }
+.hg-toggle.on { background: var(--green); color: var(--dark-blue); }
+
+/* ── Avatars (mini monsters) ── */
+.hg-avatar { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; border-radius: 16px; width: 48px; height: 48px; }
+.hg-avatar img { width: 72%; height: 72%; object-fit: contain; display: block; }
+.hg-avatar.sm { width: 38px; height: 38px; border-radius: 14px; }
+.hg-avatar.xs { width: 32px; height: 32px; border-radius: 10px; }
+
+/* ── Name tags ── */
+.hg-tag { display: inline-flex; align-items: center; gap: 8px; background: var(--dark-blue); color: #fff; border-radius: 32px; padding: 8px 16px; max-width: 100%; }
+.hg-tag-name { font-family: var(--f-display); font-weight: 900; font-size: 18px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hg-tag-pts { font-family: var(--f-ui); font-weight: 900; font-size: 18px; }
+.hg-tag-pts small { font-weight: 400; font-size: 14px; margin-left: 4px; }
+.hg-tag.lg { padding: 8px 24px 8px 8px; gap: 10px; }
+.hg-tag.lg .hg-tag-name { font-size: 32px; }
+.hg-tag.lg .hg-tag-txt { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+
+/* Ranked row: round place badge over a dark row (leaderboards, results, standings) */
+.hg-ranks { width: 100%; max-width: 372px; display: flex; flex-direction: column; gap: 4px; }
+.hg-rank { position: relative; height: 62px; padding-left: 31px; flex-shrink: 0; }
+.hg-rank-row {
+  height: 52px; margin-top: 5px; border-radius: 0 32px 32px 0; background: var(--dark-blue); color: #fff;
+  display: flex; align-items: center; gap: 8px; padding: 0 18px 0 40px;
+}
+.hg-rank-badge {
+  position: absolute; left: 0; top: 0; width: 62px; height: 62px; border-radius: 50%;
+  background: var(--bright-blue); border: 5px solid var(--light-blue);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--f-display); font-weight: 900; font-size: 34px; line-height: 1; color: #fff;
+}
+.hg-rank-name { flex: 1; min-width: 0; font-family: var(--f-display); font-weight: 900; font-size: 22px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+.hg-rank-name small { display: block; font-family: var(--f-ui); font-weight: 900; font-size: 15px; margin-top: 2px; }
+.hg-rank-name small i { font-style: normal; font-weight: 400; font-size: 12px; margin-left: 3px; }
+.hg-rank-right { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; font-family: var(--f-body); font-size: 12px; color: rgba(255,255,255,0.75); }
+.hg-rank-right b { font-family: var(--f-body); font-weight: 900; font-size: 16px; color: #fff; }
+.hg-rank-right .w { color: #fff; }
+.hg-rank.dim .hg-rank-row { opacity: 0.9; }
+.hg-rank.dim .hg-rank-badge { color: transparent; }
+.hg-move { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-ui); font-size: 13px; color: #fff; }
+.hg-move i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 9px; }
+.hg-move.up i { color: var(--green); }
+.hg-move.down i { color: var(--red); }
+.hg-move.same i { color: var(--light-blue); }
+
+/* ── Cards ── */
+.hg-card { width: 100%; max-width: 350px; background: #fff; color: var(--dark-blue); border-radius: 32px; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Turn banner: light-blue pill with the player tag on top ── */
+.hg-banner { position: relative; width: 100%; max-width: 352px; height: 121px; flex-shrink: 0; }
+.hg-banner-bg { position: absolute; left: 0; right: 0; top: 21px; height: 100px; border-radius: 50px; background: var(--light-blue); }
+.hg-banner .hg-tag { position: absolute; left: 9px; top: 0; z-index: 2; }
+.hg-banner-body { position: absolute; left: 24px; right: 88px; top: 40px; bottom: 6px; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+.hg-banner-title { font-family: var(--f-display); font-weight: 900; font-size: 26px; line-height: 1.05; color: #fff; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.hg-banner-sub { font-family: var(--f-body); font-size: 12px; color: var(--dark-blue); }
+.hg-banner-right { position: absolute; right: 20px; top: 41px; }
+
+/* Timer: dark disc + progress ring */
+.hg-timer { position: relative; width: 60px; height: 60px; border-radius: 50%; background: var(--dark-blue); }
+.hg-timer svg { position: absolute; inset: 1px; width: 58px; height: 58px; transform: rotate(-90deg); }
+.hg-timer .val { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 2px; color: #fff; font-family: var(--f-display); font-weight: 900; font-size: 16px; letter-spacing: -0.3px; }
+.hg-timer .val small { font-size: 11px; }
+.hg-timer.lg { width: 86px; height: 86px; }
+.hg-timer.lg svg { width: 84px; height: 84px; }
+.hg-timer.lg .val { font-size: 20px; }
+
+/* Score panel: SCORE: 14.5 s / 84 pts */
+.hg-score { width: 100%; max-width: 352px; border-radius: 40px; background: var(--bright-blue); color: #fff; text-align: center; padding: 22px 16px 26px; }
+.hg-score-label { font-family: var(--f-display); font-weight: 900; font-size: 30px; text-transform: uppercase; }
+.hg-score-val { font-family: var(--f-display); font-weight: 900; font-size: 86px; line-height: 1; }
+.hg-score-val small { font-size: 40px; margin-left: 8px; }
+
+/* Big countdown digit */
+.hg-count { font-family: var(--f-display); font-weight: 900; font-size: 250px; line-height: 0.9; color: var(--light-blue); -webkit-text-stroke: 12px var(--dark-blue); paint-order: stroke fill; }
+.hg-count-word { font-family: var(--f-display); font-weight: 900; font-size: 64px; line-height: 1; color: var(--dark-blue); text-transform: uppercase; }
+
+/* ── Modals: G4 Pause, G5 Quit ── */
+.hg-layer { position: fixed; inset: 0; z-index: 80; pointer-events: none; font-family: var(--f-ui); }
+.hg-modal { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(0,31,59,0.78); padding: 20px; pointer-events: auto; }
+.hg-modal.open { display: flex; }
+.hg-modal .hg-card { border: 4px solid var(--dark-blue); align-items: center; text-align: center; gap: 12px; padding: 26px 20px 22px; }
+.hg-card-title { font-family: var(--f-display); font-weight: 900; font-size: 36px; line-height: 1.05; color: var(--dark-blue); text-transform: uppercase; }
+.hg-card-sub { font-family: var(--f-body); font-size: 14px; line-height: 1.4; color: var(--dark-blue); opacity: 0.75; margin-bottom: 4px; }
+
+/* ── G6 Rotate ── */
+.hg-rotate { position: fixed; inset: 0; z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--dark-blue); color: #fff; text-align: center; padding: 24px; }
+.hg-rotate.open { display: flex; }
+.hg-rotate .hg-card-title { color: #fff; }
+.hg-rotate .hg-card-sub { color: #fff; }
+.hg-rotate-icon { font-size: 52px; }
+
+/* ── G1 Loading ── */
+.hg-loading { position: fixed; inset: 0; z-index: 70; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px; background: var(--dark-blue); color: #fff; text-align: center; }
+.hg-loading-logo { width: 200px; height: auto; }
+.hg-loading-txt { font-family: var(--f-display); font-weight: 900; font-size: 20px; }
+.hg-loading-tip { font-family: var(--f-ui); font-size: 15px; opacity: 0.8; max-width: 300px; min-height: 40px; }
+.hg-loading .hg-card-title, .hg-loading .hg-card-sub { color: #fff; }
+
+/* ── How to play (T0 · C0 · O0 · K0): big title + → lines + CTA ── */
+.hg-howto {
+  position: fixed; left: 0; right: 0; bottom: 0; top: calc(var(--hg-header-h) + env(safe-area-inset-top, 0px));
+  z-index: 75; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 60px 25px 24px;
+  background: inherit;
+}
+body.hg-game .hg-howto { background-color: inherit; background-image: inherit; background-size: inherit; background-repeat: inherit; background-position: inherit; }
+.hg-howto.from-pause { z-index: 90; }
+.hg-howto .hg-title { text-align: left; width: 100%; max-width: 340px; font-size: 46px; }
+.theme-operation .hg-howto .hg-title { color: var(--dark-blue); }
+.hg-howto-cta { margin-top: auto; }
+
+/* ── G2 Up next: white card, current player tag, queue fading out ── */
+.hg-upnext { width: 100%; max-width: 330px; background: #fff; border-radius: 32px; padding: 26px 14px 22px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; position: relative; }
+.hg-upnext-label { font-family: var(--f-display); font-weight: 900; font-size: 36px; line-height: 1; color: var(--dark-blue); padding: 0 6px 6px; text-transform: uppercase; }
+.hg-upnext .hg-tag.lg { margin: 0 -24px 10px; border-radius: 40px; }
+.hg-queue { display: flex; flex-direction: column; gap: 6px; }
+.hg-queue-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 14px; border-radius: 16px; background: var(--dark-blue); color: #fff; }
+.hg-queue-row b { font-family: var(--f-display); font-weight: 900; font-size: 20px; }
+.hg-queue-row span { font-family: var(--f-ui); font-weight: 900; font-size: 11px; }
+.hg-queue-row span i { font-style: normal; font-weight: 400; font-size: 9px; margin-left: 2px; }
+.hg-upnext-turn { font-family: var(--f-display); font-weight: 900; font-size: 13px; color: var(--dark-blue); text-align: center; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Feedback: shake + colour flash ── */
+@keyframes hg-shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)} }
+.hg-shake { animation: hg-shake 0.35s ease; }
+#hg-flash { position: fixed; inset: 0; z-index: 55; pointer-events: none; background: rgba(234,53,87,0.45); opacity: 0; }
+#hg-flash.on { animation: hg-flash 0.4s ease-out; }
+@keyframes hg-flash { 0%{opacity:1} 100%{opacity:0} }
+
+/* Confetti */
+.hg-confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.hg-confetti i { position: absolute; top: -20px; width: 9px; height: 9px; animation: hg-cf linear forwards; }
+@keyframes hg-cf { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }

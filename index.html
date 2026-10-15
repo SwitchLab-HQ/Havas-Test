@@ -1,643 +1,744 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KTRVRJ5D');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Hasbro — Family Game Time</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Hasbro — The Mini Games</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&family=Inter+Tight:wght@400;500;700;900&family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
+    /* Launcher · logic: wireframes boards 01 - Onboarding (14:106) + 02 - Home & Settings (111:232)
+       · look: Design UI frames Hasbro_MiniGames_loading / Terms / Terms_OK / AddPlayers_01–03 / Home (2:635).
+       02 Intro, 05c Settings, 05e Clear and 05f Language are not in the Design UI yet: same system. */
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+    input { -webkit-user-select:text; user-select:text; }
+    html, body { width:100%; height:100%; overflow:hidden; font-family:var(--f-ui); color:#fff; background:var(--dark-blue); }
+    .page { display:none; position:absolute; inset:0; flex-direction:column; background:var(--dark-blue) url('assets/ui/bg-pattern.webp') center top / 450px 800px repeat; }
+    .page.active { display:flex; }
 
-    html, body {
-      width:100%; height:100%; overflow:hidden;
-      font-family: 'Fredoka', 'Arial Rounded MT Bold', Arial, sans-serif;
-      background-color: #1565C0;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.22) 3px, transparent 3px);
-      background-size: 28px 28px;
-      color:#fff;
-      touch-action: none;
-    }
+    /* Header: dark band, Mini Games logo hanging over it, partners left, pill right */
+    .top { position:relative; flex-shrink:0; height:calc(80px + env(safe-area-inset-top,0px)); padding-top:env(safe-area-inset-top,0px); }
+    .top::before { content:''; position:absolute; left:0; right:0; top:0; height:calc(65px + env(safe-area-inset-top,0px)); background:var(--dark-blue); }
+    .top .mg { position:absolute; left:50%; transform:translateX(-50%); top:calc(17px + env(safe-area-inset-top,0px)); width:136px; height:auto; }
+    .top .partners { position:absolute; left:44px; top:calc(14px + env(safe-area-inset-top,0px)); width:35px; height:auto; }
+    .top .back { position:absolute; left:6px; top:calc(10px + env(safe-area-inset-top,0px)); }
+    .top .back + .partners { left:52px; }
+    .pillbtn { position:absolute; right:17px; top:calc(18px + env(safe-area-inset-top,0px)); display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 12px;
+      border-radius:20px; border:1px solid var(--bright-blue); background:#fff; color:var(--dark-blue); font-family:var(--f-body); font-weight:500; font-size:12px; cursor:pointer; }
+    .pillbtn img { width:14px; height:14px; }
+    .iconbtn { width:44px; height:44px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+    .iconbtn img { width:26px; height:26px; }
 
-    /* ── Scrollable wrapper ── */
-    .page {
-      display:none;
-      position:absolute;
-      inset:0;
-      overflow-y:auto;
-      overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-    }
-    .page.active { display:block; }
+    .body { flex:1; display:flex; flex-direction:column; align-items:center; gap:24px; padding:39px 25px 0; text-align:center; min-height:0; }
+    .foot { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:10px; padding:12px 25px calc(56px + env(safe-area-inset-bottom,0px)); }
+    .head-block { width:100%; max-width:340px; display:flex; flex-direction:column; gap:16px; }
+    .sub { font-family:var(--f-ui); font-size:15px; color:#fff; line-height:1.4; }
+    .small { font-family:var(--f-body); font-size:12px; color:rgba(255,255,255,0.75); }
 
-    /* ── Desktop screen ── */
-    #desktop-screen {
-      display:none;
-      position:absolute;
-      inset:0;
-      flex-direction:column;
-      align-items:center;
-      justify-content:center;
-      gap:28px;
-      text-align:center;
-      padding:40px;
-    }
-    #desktop-screen.active { display:flex; }
-    .qr-wrap {
-      background:#fff;
-      border-radius:20px;
-      padding:16px;
-      width:200px; height:200px;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .qr-wrap svg { width:100%; height:100%; }
-    #desktop-screen p { color:rgba(255,255,255,0.8); font-size:16px; line-height:1.5; max-width:340px; }
+    /* Onboarding CTA (Inter Tight bold, no border) */
+    .ob-btn { width:100%; max-width:340px; height:54px; border:none; border-radius:35px; background:var(--light-blue); color:var(--dark-blue);
+      font-family:var(--f-ui); font-weight:700; font-size:16px; cursor:pointer; touch-action:manipulation; }
+    .ob-btn:active { transform:scale(0.98); }
+    .ob-btn:disabled { background:#cdeef5; color:rgba(0,31,59,0.3); pointer-events:none; }
 
-    /* ── Setup screen ── */
-    #setup-screen {
-      padding: 40px 24px 40px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100%;
-    }
-    .setup-hasbro { width:80px; margin-bottom:16px; }
-    .setup-title {
-      font-size:32px;
-      font-weight:700;
-      color:#FFD700;
-      paint-order:stroke fill;
-      -webkit-text-stroke:3px #1a1a1a;
-      text-align:center;
-      margin-bottom:6px;
-      line-height:1.1;
-    }
-    .setup-sub {
-      font-size:15px;
-      color:rgba(255,255,255,0.8);
-      margin-bottom:28px;
-      text-align:center;
-    }
-    .players-list {
-      width:100%;
-      max-width:360px;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      margin-bottom:20px;
-    }
-    .player-row {
-      display:flex;
-      align-items:center;
-      gap:10px;
-    }
-    .player-num {
-      width:34px; height:34px;
-      background:rgba(255,255,255,0.2);
-      border-radius:50%;
-      display:flex; align-items:center; justify-content:center;
-      font-weight:700; font-size:16px;
-      flex-shrink:0;
-    }
-    .player-input {
-      flex:1;
-      background:rgba(255,255,255,0.15);
-      border:2px solid rgba(255,255,255,0.3);
-      border-radius:50px;
-      padding:12px 18px;
-      font-size:16px;
-      font-family:inherit;
-      color:#fff;
-      outline:none;
-    }
-    .player-input::placeholder { color:rgba(255,255,255,0.5); }
-    .player-input:focus { border-color:rgba(255,255,255,0.8); background:rgba(255,255,255,0.25); }
-    .btn-remove {
-      width:34px; height:34px;
-      background:rgba(230,57,70,0.7);
-      border:none; border-radius:50%;
-      color:#fff; font-size:20px; line-height:1;
-      cursor:pointer;
-      flex-shrink:0;
-      display:flex; align-items:center; justify-content:center;
-    }
-    .btn-add {
-      width:100%; max-width:360px;
-      padding:13px;
-      background:rgba(255,255,255,0.15);
-      border:2px dashed rgba(255,255,255,0.4);
-      border-radius:50px;
-      color:#fff; font-size:16px; font-family:inherit;
-      cursor:pointer;
-      margin-bottom:24px;
-    }
-    .btn-start {
-      width:100%; max-width:360px;
-      padding:18px;
-      background:linear-gradient(135deg, #E53935, #B71C1C);
-      border:none; border-radius:50px;
-      color:#fff; font-size:20px; font-weight:700;
-      font-family:inherit; text-transform:uppercase;
-      letter-spacing:1px;
-      box-shadow:0 6px 20px rgba(0,0,0,0.3);
-      cursor:pointer;
-    }
-    .btn-start:disabled {
-      background:rgba(255,255,255,0.2);
-      box-shadow:none;
-      color:rgba(255,255,255,0.4);
-    }
+    /* 01 Loading */
+    #p-loading { align-items:center; text-align:center; }
+    #p-loading .hg-logo { margin-top:calc(83px + env(safe-area-inset-top,0px)); width:108px; }
+    #p-loading .mg-big { width:270px; margin-top:16px; }
+    .progress { position:relative; width:280px; height:16px; margin-top:70px; border-radius:8px; border:4px solid var(--dark-blue); background:var(--light-blue); overflow:hidden; }
+    .progress i { position:absolute; left:2px; top:0; bottom:0; width:0; background-image:radial-gradient(circle, var(--dark-blue) 3.5px, transparent 4px); background-size:10px 8px; background-repeat:repeat-x; transition:width 0.2s; }
+    #load-txt { margin-top:18px; font-family:var(--f-ui); font-weight:700; font-size:15px; }
+    .logos-row { display:flex; align-items:center; justify-content:center; gap:28px; margin-top:auto; margin-bottom:calc(60px + env(safe-area-inset-bottom,0px)); flex-wrap:wrap; padding:0 20px; }
+    .logos-row img { height:34px; width:auto; }
+    .legal { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom,0px)); left:0; right:0; text-align:center; }
 
-    /* ── Game select ── */
-    #games-page {
-      background-color: #C62828;
-      background-image:
-        repeating-radial-gradient(
-          circle at 50% 25%,
-          transparent 0px, transparent 44px,
-          rgba(0,0,0,0.055) 44px, rgba(0,0,0,0.055) 46px
-        );
-    }
-    #games-screen {
-      padding: 20px 16px 40px;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      min-height:100%;
-    }
-    .top-bar {
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:16px;
-    }
-    .hasbro-logo { height:44px; filter:brightness(0) invert(1); }
-    .btn-players {
-      background:rgba(255,255,255,0.2);
-      border:2px solid rgba(255,255,255,0.4);
-      border-radius:50px;
-      padding:8px 16px;
-      color:#fff; font-size:13px; font-family:inherit;
-      cursor:pointer;
-    }
-    .hero-title {
-      font-size:46px;
-      font-weight:700;
-      color:#fff;
-      paint-order:stroke fill;
-      -webkit-text-stroke:3px #7b0000;
-      text-align:center;
-      line-height:1;
-      margin-bottom:6px;
-      text-transform:uppercase;
-      letter-spacing:1px;
-    }
-    .hero-sub {
-      font-size:13px;
-      font-weight:700;
-      color:rgba(255,255,255,0.7);
-      margin-bottom:16px;
-      text-align:center;
-      text-transform:uppercase;
-      letter-spacing:2px;
-    }
-    .players-chips {
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px;
-      justify-content:center;
-      margin-bottom:20px;
-    }
-    .chip {
-      background:rgba(255,255,255,0.2);
-      border:2px solid rgba(255,255,255,0.35);
-      border-radius:50px;
-      padding:6px 14px;
-      font-size:14px;
-      font-weight:600;
-    }
+    /* 03 Terms */
+    .links { width:100%; max-width:340px; background:var(--light-blue); padding:0 8px; }
+    .links button { width:100%; display:flex; justify-content:space-between; align-items:center; padding:14px 0; background:none; border:none; border-bottom:1px solid var(--dark-blue);
+      color:var(--dark-blue); font-family:var(--f-body); font-weight:600; font-size:15px; cursor:pointer; }
+    .links button:last-child { border-bottom:none; }
+    .links button span:last-child { font-weight:400; font-size:20px; }
+    .check { width:100%; max-width:340px; display:flex; gap:12px; align-items:flex-start; padding:14px; border-radius:16px; border:2px solid var(--dark-blue); background:#fff;
+      color:var(--dark-blue); text-align:left; font-family:var(--f-ui); font-weight:500; font-size:14px; line-height:1.35; cursor:pointer; }
+    .box { width:22px; height:22px; border-radius:5px; border:2px solid var(--dark-blue); background:#f8f8f8; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; font-weight:900; }
+    .check.on .box { background:var(--bright-blue); border-color:var(--dark-blue); }
 
-    /* ── Stacked game rows ── */
-    .games-list {
-      width:100%; max-width:440px;
-      display:flex; flex-direction:column;
-      gap:12px;
-    }
-    .game-row {
-      width:100%;
-      background:#fff;
-      border-radius:18px;
-      padding:14px 18px;
-      display:flex; align-items:center;
-      cursor:pointer;
-      box-shadow:0 6px 18px rgba(0,0,0,0.28), 0 2px 4px rgba(0,0,0,0.12);
-      transition:transform 0.12s;
-      overflow:hidden;
-      position:relative;
-      min-height:82px;
-    }
-    .game-row:active { transform:scale(0.97); }
-    .game-row.gr-soon { opacity:0.55; pointer-events:none; }
-    .gr-content { flex:1; min-width:0; }
-    .gr-brand {
-      font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:1.5px;
-      margin-bottom:3px;
-    }
-    .gr-brand-monopoly  { color:#C62828; }
-    .gr-brand-connect4  { color:#1565C0; }
-    .gr-brand-cluedo    { color:#6a0dad; }
-    .gr-brand-operation { color:#E65100; }
-    .gr-brand-twister   { color:#e63946; }
-    .gr-title {
-      font-size:22px; font-weight:700;
-      color:#1a1a1a; text-transform:uppercase;
-      line-height:1.1; letter-spacing:0.5px;
-    }
-    .gr-badge {
-      position:absolute; top:8px; right:10px;
-      font-size:9px; font-weight:700; letter-spacing:1px;
-      text-transform:uppercase; color:#999;
-      background:#f0f0f0; border-radius:20px; padding:3px 8px;
-    }
-    .gr-icon {
-      width:68px; height:68px; flex-shrink:0;
-      display:flex; align-items:center; justify-content:center;
-      margin-left:14px;
-    }
-    .gr-icon img {
-      width:100%; height:100%;
-      object-fit:contain;
-      filter:drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-    }
+    /* 04 Players */
+    #p-players .body { overflow-y:auto; padding-bottom:12px; gap:24px; }
+    .pcard { width:100%; max-width:356px; background:#fff; border-radius:26px; padding:8px; display:flex; flex-direction:column; gap:10px; }
+    .plist { display:flex; flex-direction:column; gap:10px; }
+    .prow { display:flex; align-items:center; gap:10px; }
+    .prow .hg-avatar { width:51px; height:51px; border-radius:18px; }
+    .pinput { flex:1; min-width:0; height:51px; padding:0 18px; border-radius:24px; border:1.5px solid var(--light-blue); background:#fff; color:var(--dark-blue);
+      font-family:var(--f-ui); font-weight:500; font-size:16px; outline:none; }
+    .pinput::placeholder { color:rgba(0,31,59,0.4); font-weight:400; }
+    .pinput:focus { border-color:var(--bright-blue); border-width:2px; }
+    .pinput.err { border-color:var(--red); }
+    .perr { font-family:var(--f-ui); font-size:13px; color:var(--red); text-align:left; margin:-4px 36px 0 61px; }
+    .prm { width:26px; height:26px; border:none; background:none; flex-shrink:0; cursor:pointer; }
+    .prm img { width:26px; height:26px; display:block; }
+    .addbtn { height:54px; border-radius:54px; border:2px dashed var(--dark-blue); background:none; color:var(--dark-blue); display:flex; align-items:center; justify-content:center; gap:12px;
+      font-family:var(--f-ui); font-size:16px; cursor:pointer; }
+    .addbtn img { width:18px; height:18px; }
+    .maxnote { text-align:center; padding:8px; font-family:var(--f-ui); font-size:14px; color:rgba(0,31,59,0.6); }
+    .plist.compact { gap:6px; }
+    .plist.compact .pinput, .plist.compact .hg-avatar { height:44px; }
+    .plist.compact .hg-avatar { width:44px; border-radius:15px; }
+    #p-players.kb .players-sub, #p-players.kb .top .pillbtn { display:none; }
+    #p-players.kb .hg-title { font-size:24px; }
 
-    /* ── Language selector ── */
-    .lang-btn {
-      background:rgba(255,255,255,0.2);
-      border:2px solid rgba(255,255,255,0.4);
-      border-radius:50px;
-      padding:7px 13px;
-      color:#fff; font-size:13px; font-family:inherit; font-weight:700;
-      cursor:pointer; display:flex; align-items:center; gap:5px;
-    }
-    .lang-overlay {
-      position:fixed; inset:0; z-index:100;
-      background:rgba(0,0,0,0.6);
-      display:none; align-items:center; justify-content:center;
-    }
-    .lang-overlay.open { display:flex; }
-    .lang-panel {
-      background:#1565C0;
-      border:2px solid rgba(255,255,255,0.3);
-      border-radius:20px;
-      padding:24px 20px;
-      width:260px;
-      text-align:center;
-    }
-    .lang-panel h3 { font-size:18px; font-weight:700; margin-bottom:16px; color:#FFD700; }
-    .lang-option {
-      display:flex; align-items:center; gap:12px;
-      padding:12px 16px; border-radius:12px;
-      cursor:pointer; margin-bottom:6px;
-      background:rgba(255,255,255,0.1);
-      font-size:16px; font-weight:600;
-      transition:background 0.15s;
-    }
-    .lang-option:active { background:rgba(255,255,255,0.25); }
-    .lang-option.active { background:rgba(255,215,0,0.25); border:2px solid rgba(255,215,0,0.5); }
-    .lang-flag { font-size:22px; }
+    /* 05 Home */
+    #p-home .body { overflow-y:auto; padding:0 8px; gap:0; }
+    .podium { position:relative; width:410px; max-width:none; height:250px; flex-shrink:0; margin:0 -10px; }
+    .podium .base { position:absolute; left:0; right:0; top:107px; height:143px; width:100%; object-fit:cover; }
+    .pod { position:absolute; display:flex; flex-direction:column; align-items:center; }
+    .pod img.m { display:block; }
+    .pod .nm { margin-top:-12px; background:var(--dark-blue); color:#fff; border-radius:32px; font-family:var(--f-display); font-weight:900; white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+    .pod.p1 { left:50%; transform:translateX(-50%); top:0; } .pod.p1 img.m { width:94px; margin:18px 0 0; } .pod.p1 .nm { font-size:16px; padding:8px 16px; margin-left:60px; }
+    .pod.p2 { left:262px; top:48px; } .pod.p2 img.m { width:87px; margin-top:14px; } .pod.p2 .nm { font-size:12px; padding:4px 8px; margin-top:-6px; }
+    .pod.p3 { left:24px; top:57px; } .pod.p3 img.m { width:87px; margin-top:18px; } .pod.p3 .nm { font-size:10px; padding:3px 6px; margin-top:-4px; }
+    .cards { width:100%; max-width:374px; display:flex; flex-direction:column; gap:32px; margin-top:34px; }
+    .gcard { position:relative; height:260px; cursor:pointer; }
+    .gcard .art { position:absolute; left:0; right:0; top:0; height:223px; border-radius:34px; border:4px solid var(--light-blue); overflow:hidden; background:#0b2a4a; }
+    .gcard .art img { position:absolute; }
+    .gcard .art img.bg { inset:0; width:100%; height:100%; object-fit:cover; }
+    .gcard .bar { position:absolute; left:0; right:0; top:186px; height:68px; padding:4px; border-radius:38px; background:var(--dark-blue); display:flex; align-items:center; justify-content:space-between; }
+    .gcard .bar .lg { height:60px; width:174px; padding:10px; display:flex; align-items:center; }
+    .gcard .bar .lg img { max-height:44px; max-width:154px; }
+    .gcard .play { width:126px; height:60px; border-radius:30px; background:var(--light-blue); color:var(--dark-blue); display:flex; align-items:center; justify-content:center; gap:8px;
+      font-family:var(--f-ui); font-weight:700; font-size:16px; }
+    .gcard .play img { width:26px; height:26px; }
+    .gcard:active { transform:scale(0.985); }
+    .gcard.soon { opacity:0.5; pointer-events:none; }
+    .lb-title { width:100%; max-width:374px; height:60px; margin-top:48px; border-radius:38px; background:var(--dark-blue); display:flex; align-items:center; justify-content:center;
+      font-family:var(--f-display); font-weight:900; font-size:38px; color:#fff; flex-shrink:0; }
+    .lb { width:100%; max-width:372px; display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+    .ntag { position:relative; height:80px; flex-shrink:0; }
+    .ntag .row { position:absolute; left:10.7%; right:0; top:9px; bottom:9px; border-radius:0 32px 32px 0; background:var(--dark-blue); display:flex; align-items:center; gap:8px; padding:0 40px 0 56px; }
+    .ntag .badge { position:absolute; left:0; top:0; width:80px; height:80px; border-radius:50%; background:var(--bright-blue); border:5px solid var(--light-blue);
+      display:flex; align-items:center; justify-content:center; font-family:var(--f-display); font-weight:900; font-size:48px; color:#fff; }
+    .ntag .txt { display:flex; flex-direction:column; gap:6px; min-width:0; text-align:left; }
+    .ntag .txt b { font-family:var(--f-display); font-weight:900; font-size:30px; line-height:1; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ntag .txt span { font-family:var(--f-ui); font-weight:900; font-size:18px; line-height:1; color:#fff; }
+    .ntag .txt span i { font-style:normal; font-weight:400; font-size:14px; margin-left:6px; }
+    .ntag .txt small { font-family:var(--f-body); font-size:10px; color:rgba(255,255,255,0.6); }
+    .ntag .edit { position:absolute; right:14px; top:50%; transform:translateY(-50%); width:30px; height:30px; border:none; background:none; display:flex; align-items:center; justify-content:center; }
+    .ntag .edit img { width:18px; height:18px; }
+    .empty-note { margin-top:8px; font-family:var(--f-ui); font-size:14px; color:#fff; }
+    .home-foot { width:calc(100% + 16px); margin:40px -8px 0; background:var(--bright-blue); padding:18px 32px calc(40px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; align-items:flex-start; gap:18px; flex-shrink:0; }
+    .home-foot img.p { width:116px; } .home-foot img.m { width:137px; }
+
+    /* Sheets: 03b, 05c, 05e (not designed yet — same system) */
+    .scrim { position:fixed; inset:0; z-index:100; background:rgba(0,31,59,0.7); display:none; align-items:flex-end; justify-content:center; }
+    .scrim.open { display:flex; }
+    .sheet { width:100%; max-width:480px; background:#fff; color:var(--dark-blue); border-radius:32px 32px 0 0; padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; gap:12px; max-height:92%; }
+    .sheet.tall { height:90%; }
+    .grab { width:44px; height:5px; border-radius:5px; background:rgba(0,31,59,0.2); margin:2px auto 6px; }
+    .sheet-head { display:flex; align-items:center; justify-content:space-between; }
+    .sheet-title { font-family:var(--f-display); font-weight:900; font-size:28px; line-height:1.1; text-transform:uppercase; }
+    .sheet .iconbtn img { width:26px; height:26px; }
+    .sheet-scroll { flex:1; overflow-y:auto; font-family:var(--f-body); font-size:15px; line-height:1.5; }
+    .sheet-scroll p { margin-bottom:12px; }
+    .sheet .sub { color:var(--dark-blue); }
+    .srow { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:16px 4px; border:none; border-bottom:1px solid rgba(0,31,59,0.12); background:none; width:100%;
+      font-family:var(--f-ui); font-weight:700; font-size:17px; color:var(--dark-blue); cursor:pointer; text-align:left; }
+    .srow span:last-child { font-weight:500; font-size:15px; color:rgba(0,31,59,0.6); }
+    .srow.danger { border-bottom:none; margin-top:12px; color:var(--red); flex-direction:column; align-items:flex-start; gap:2px; }
+    .srow.danger small { color:rgba(0,31,59,0.6); font-weight:400; font-size:13px; }
+
+    /* 05f Language */
+    #p-lang { background:#fff; color:var(--dark-blue); }
+    .lang-top { display:flex; align-items:center; gap:4px; padding:calc(10px + env(safe-area-inset-top,0px)) 12px 10px; background:var(--dark-blue); color:#fff; flex-shrink:0; }
+    .lang-top b { font-family:var(--f-display); font-weight:900; font-size:22px; }
+    .search { margin:14px 16px 4px; height:48px; border-radius:24px; border:1.5px solid var(--light-blue); padding:0 18px; font-family:var(--f-ui); font-size:16px; outline:none; color:var(--dark-blue); }
+    .lang-scroll { flex:1; overflow-y:auto; padding:0 16px 24px; }
+    .lang-sec { font-family:var(--f-display); font-weight:900; font-size:12px; margin:16px 0 4px; }
+    .lrow { display:flex; align-items:center; justify-content:space-between; padding:12px 4px; border-bottom:1px solid rgba(0,31,59,0.12); cursor:pointer; }
+    .lrow b { display:block; font-family:var(--f-ui); font-weight:700; font-size:17px; }
+    .lrow small { font-family:var(--f-body); color:rgba(0,31,59,0.6); font-size:13px; }
+    .lrow .tick { color:var(--bright-blue); font-size:20px; font-weight:900; }
+
+    /* Desktop */
+    #desktop { align-items:center; justify-content:center; gap:22px; text-align:center; padding:40px; }
+    .qr { width:200px; height:200px; background:#fff; border-radius:20px; padding:14px; }
+    .qr img { width:100%; height:100%; display:block; }
   </style>
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTRVRJ5D"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
-  <!-- Desktop redirect -->
-  <div id="desktop-screen">
-    <img src="assets/hasbro-logo.png" alt="Hasbro" style="width:100px;">
-    <p style="font-size:22px; font-weight:700; color:#FFD700; -webkit-text-stroke:1px #1a1a1a;">Family Game Time</p>
-    <p>Open this on your phone to play!</p>
-    <div class="qr-wrap">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://test-havas.vercel.app&bgcolor=ffffff&color=000000&margin=0&ecc=M" alt="Scan to play" style="width:100%;height:100%;border-radius:4px;display:block;">
-    </div>
-    <p style="font-size:13px; color:rgba(255,255,255,0.6);">test-havas.vercel.app</p>
+  <!-- Desktop: open on your phone (out of scope of the wireframes, unchanged) -->
+  <div id="desktop" class="page">
+    <img src="assets/ui/minigames-logo.svg" alt="The Mini Games" style="width:240px;">
+    <p class="sub" data-t="desktop_open">Open this on your phone to play!</p>
+    <div class="qr"><img src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://test-havas.vercel.app&bgcolor=ffffff&color=000000&margin=0&ecc=M" alt="QR code"></div>
+    <p class="small">test-havas.vercel.app</p>
   </div>
 
-  <!-- Setup screen -->
-  <div id="setup-page" class="page">
-    <div id="setup-screen">
-      <img src="assets/hasbro-logo.png" alt="Hasbro" class="setup-hasbro">
-      <div class="setup-title">Who's playing?</div>
-      <div class="setup-sub">Enter 1 to 8 player names</div>
-      <div class="players-list" id="players-list"></div>
-      <button class="btn-add" id="btn-add-player">+ Add player</button>
-      <button class="btn-start" id="btn-start-session" disabled>Let's play!</button>
+  <!-- 01 · Loading -->
+  <div id="p-loading" class="page">
+    <img class="hg-logo" src="assets/ui/hasbro-games-logo.svg" alt="Hasbro Games">
+    <img class="mg-big" src="assets/ui/minigames-logo.svg" alt="The Mini Games">
+    <div class="progress"><i id="load-bar"></i></div>
+    <div id="load-txt" data-t="loading">Loading games…</div>
+    <button class="ob-btn" id="load-retry" style="display:none;max-width:200px;margin-top:12px;" data-t="retry">Retry</button>
+    <div class="logos-row">
+      <img src="assets/ui/logo-twister.svg" alt="Twister" style="opacity:.45">
+      <img src="assets/ui/logo-connect4.svg" alt="Connect 4">
+      <img src="assets/ui/logo-operation.webp" alt="Operation" style="opacity:.5">
+      <img src="assets/ui/logo-cluedo.svg" alt="Cluedo" style="opacity:.6">
     </div>
+    <div class="legal small">© Hasbro · Nestlé</div>
   </div>
 
-  <!-- Games screen -->
-  <div id="games-page" class="page">
-    <div id="games-screen">
-      <div class="top-bar">
-        <img src="assets/hasbro-logo.png" alt="Hasbro" class="hasbro-logo">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <button class="lang-btn" id="btn-lang">🌐 <span id="lang-label">EN</span></button>
-          <button class="btn-players" id="btn-change-players">Players</button>
-        </div>
+  <!-- 02 · Intro -->
+  <div id="p-intro" class="page">
+    <div class="top"><img class="partners" src="assets/ui/header-partner-logos.svg" alt="Hasbro Games × Nestlé"><img class="mg" src="assets/ui/minigames-logo-header.svg" alt="The Mini Games"><button class="pillbtn js-lang"></button></div>
+    <div class="body">
+      <div class="head-block">
+        <div class="hg-title" data-t="intro_head">4 games. 1 phone. Everyone plays.</div>
+        <ul class="hg-bullets">
+          <li data-t="intro_s1">Add who's playing</li>
+          <li data-t="intro_s2">Pick a game</li>
+          <li data-t="intro_s3">Pass the phone each turn</li>
+        </ul>
       </div>
-      <div class="hero-title">Family<br>Game Time</div>
-      <div class="hero-sub">Pick a game</div>
-      <div class="players-chips" id="players-chips"></div>
-
-      <div class="games-list">
-
-        <!-- Connect 4 -->
-        <div class="game-row" onclick="goTo('games/connect4/')">
-          <div class="gr-content">
-            <div class="gr-brand gr-brand-connect4">Connect 4</div>
-            <div class="gr-title">Infinite Connect 4</div>
-          </div>
-          <div class="gr-icon"><img src="games/connect4/assets/icon.webp" alt="Connect 4"></div>
-        </div>
-
-        <!-- Cluedo -->
-        <div class="game-row" onclick="goTo('games/cluedo/')">
-          <div class="gr-content">
-            <div class="gr-brand gr-brand-cluedo">Cluedo</div>
-            <div class="gr-title">Crime Scene</div>
-          </div>
-          <div class="gr-icon"><img src="games/cluedo/assets/icon.webp" alt="Cluedo"></div>
-        </div>
-
-        <!-- Operation -->
-        <div class="game-row" onclick="location.href='games/operation/'">
-          <div class="gr-content">
-            <div class="gr-brand gr-brand-operation">Operation</div>
-            <div class="gr-title">Steady Hands</div>
-          </div>
-          <div class="gr-icon"><img src="games/operation/assets/icon.webp" alt="Operation"></div>
-        </div>
-
-        <!-- Twister -->
-        <div class="game-row" onclick="goTo('games/twister/')">
-          <div class="gr-content">
-            <div class="gr-brand gr-brand-twister">Twister</div>
-            <div class="gr-title">Colour Rush</div>
-          </div>
-          <div class="gr-icon"><img src="games/twister/assets/icon.webp" alt="Twister"></div>
-        </div>
-
+      <div class="logos-row" style="margin:auto 0 0;">
+        <img src="assets/ui/logo-cluedo.svg" alt="Cluedo"><img src="assets/ui/logo-connect4.svg" alt="Connect 4">
+        <img src="assets/ui/logo-twister.svg" alt="Twister"><img src="assets/ui/logo-operation.webp" alt="Operation">
       </div>
     </div>
+    <div class="foot"><button class="ob-btn" id="intro-go" data-t="lets_go">Let's go</button></div>
   </div>
 
-  <!-- Language overlay -->
-  <div class="lang-overlay" id="lang-overlay" onclick="closeLang(event)">
-    <div class="lang-panel">
-      <h3>🌐 Language</h3>
-      <div id="lang-options"></div>
+  <!-- 03 · Terms -->
+  <div id="p-terms" class="page">
+    <div class="top"><button class="iconbtn back" id="terms-back"><img src="assets/ui/icon-back.svg" alt="Back"></button><img class="partners" src="assets/ui/header-partner-logos.svg" alt="Hasbro Games × Nestlé"><img class="mg" src="assets/ui/minigames-logo-header.svg" alt="The Mini Games"><button class="pillbtn js-lang"></button></div>
+    <div class="body hg-scroll">
+      <div class="head-block">
+        <div class="hg-title" data-t="terms_head">Before you play</div>
+        <ul class="hg-bullets">
+          <li data-t="terms_1">Player names stay on this phone.</li>
+          <li data-t="terms_2">Nothing is sent or shared.</li>
+          <li data-t="terms_4">Your data is protected locally.</li>
+          <li data-t="terms_3">Some games get you moving. Play safely.</li>
+        </ul>
+      </div>
+      <div class="links">
+        <button class="js-sheet" data-sheet="terms"><span data-t="terms_tc">Terms &amp; Conditions</span><span>›</span></button>
+        <button class="js-sheet" data-sheet="privacy"><span data-t="terms_pn">Privacy notice</span><span>›</span></button>
+      </div>
+      <div class="check" id="terms-check"><div class="box" id="terms-box"></div><div data-t="terms_ok">I'm 16+, or a parent / guardian, and I accept the Terms</div></div>
+    </div>
+    <div class="foot"><button class="ob-btn" id="terms-go" disabled data-t="accept">Accept &amp; continue</button></div>
+  </div>
+
+  <!-- 04 · Players -->
+  <div id="p-players" class="page">
+    <div class="top"><button class="iconbtn back" id="players-back"><img src="assets/ui/icon-back.svg" alt="Back"></button><img class="partners" src="assets/ui/header-partner-logos.svg" alt="Hasbro Games × Nestlé"><img class="mg" src="assets/ui/minigames-logo-header.svg" alt="The Mini Games"><button class="pillbtn js-lang"></button></div>
+    <div class="body hg-scroll" id="players-body">
+      <div class="head-block">
+        <div class="hg-title" data-t="who">Who's playing?</div>
+        <ul class="hg-bullets players-sub"><li data-t="add_1_8">Add 1 to 8 players.</li></ul>
+      </div>
+      <div class="pcard">
+        <div class="plist" id="plist"></div>
+        <button class="addbtn" id="padd"><img src="assets/ui/icon-add.svg" alt=""><span data-t="add_player">Add player</span></button>
+        <div class="maxnote" id="pmax" data-t="max8" style="display:none;">8 players max</div>
+      </div>
+    </div>
+    <div class="foot" id="players-foot"><button class="ob-btn" id="players-go" data-t="lets_play">Let's play!</button></div>
+  </div>
+
+  <!-- 05 · Home -->
+  <div id="p-home" class="page">
+    <div class="top"><img class="partners" src="assets/ui/header-partner-logos.svg" alt="Hasbro Games × Nestlé"><img class="mg" src="assets/ui/minigames-logo-header.svg" alt="The Mini Games"><button class="pillbtn" id="gear" aria-label="Settings"><img src="assets/ui/icon-settings.svg" alt="" style="width:15px;height:14px;"></button></div>
+    <div class="body hg-scroll" id="home-body">
+      <div class="podium" id="podium"></div>
+      <div class="cards" id="cards"></div>
+      <div class="lb-title" data-t="leaderboard">LEADERBOARD</div>
+      <div class="lb" id="lb"></div>
+      <div class="home-foot">
+        <img class="p" src="assets/ui/footer-partner-logos.svg" alt="Hasbro Games × Nestlé">
+        <img class="m" src="assets/ui/footer-minigames-logo.svg" alt="The Mini Games">
+      </div>
     </div>
   </div>
+
+  <!-- 05f · Language picker -->
+  <div id="p-lang" class="page">
+    <div class="lang-top"><button class="iconbtn" id="lang-back"><img src="assets/ui/icon-back.svg" alt="Back"></button><b data-t="language">Language</b></div>
+    <input class="search" id="lang-search" type="search" placeholder="🔍 Search · Rechercher · Suchen…" autocomplete="off">
+    <div class="lang-scroll hg-scroll" id="lang-list"></div>
+  </div>
+
+  <!-- 03b Terms sheet · 05c Settings · 05e Clear · remove-player confirm -->
+  <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 
   <script src="shared.js"></script>
   <script>
-    // ── i18n ── (add languages here when ready)
-    var LANGUAGES = [
-      { code:'en', label:'English',  flag:'🇬🇧' },
-      { code:'fr', label:'Français', flag:'🇫🇷' },
-      // { code:'de', label:'Deutsch',  flag:'🇩🇪' },
-      // { code:'es', label:'Español',  flag:'🇪🇸' },
-      // { code:'ar', label:'العربية',  flag:'🇸🇦' },
-    ];
-
-    var TRANSLATIONS = {
+    HG.addStrings({
       en: {
-        pick_game:    'Pick a game to start',
-        players:      'Players',
-        lets_play:    "Let's play!",
-        who_playing:  "Who's playing?",
-        enter_names:  'Enter 1 to 8 player names',
-        add_player:   '+ Add player',
-        coming_soon:  'COMING SOON',
-        family_game:  'Family\nGame Time',
+        desktop_open: 'Open this on your phone to play!', loading: 'Loading games…',
+        still_loading: 'Still loading… check your connection', retry: 'Retry',
+        intro_head: '4 games. 1 phone. Everyone plays.', intro_s1: "Add who's playing", intro_s2: 'Pick a game',
+        intro_s3: 'Pass the phone each turn', lets_go: "Let's go",
+        terms_head: 'Before you play', terms_1: 'Player names stay on this phone.', terms_2: 'Nothing is sent or shared.',
+        terms_4: 'Your data is protected locally.', terms_3: 'Some games get you moving. Play safely.',
+        terms_tc: 'Terms & Conditions', terms_pn: 'Privacy notice',
+        terms_ok: "I'm 16+, or a parent / guardian, and I accept the Terms", accept: 'Accept & continue',
+        who: "Who's playing?", add_1_8: 'Add 1 to 8 players.', add_player: 'Add player', max8: '8 players max',
+        lets_play: "Let's play!", player_n: 'Player {n}',
+        dup: '{name} is already playing. Try "{name} B." or a nickname.',
+        remove_q: 'Remove {name}?', remove_body: 'Their {pts} points will be lost.', remove: 'Remove', cancel: 'Cancel',
+        leaderboard: 'LEADERBOARD', play: 'PLAY', coming_soon: 'Coming soon', play_to_score: 'Play a game to score',
+        settings: 'Settings', language: 'Language', players: 'Players', n_players: '{n} players · Edit',
+        one_player: '1 player · Edit', sound: 'Sound', terms_privacy: 'Terms & privacy',
+        clear_lb: 'Clear leaderboard…', clear_lb_sub: "Sets everyone's points to 0. Players stay.",
+        clear_q: 'Clear the leaderboard?', clear_body: "Everyone's points go back to 0. Players stay. You can't undo this.",
+        clear_btn: 'Clear leaderboard', close: 'Close', on: 'On', off: 'Off',
+        suggested: 'SUGGESTED', all_langs: 'ALL LANGUAGES', automatic: 'Automatic · {lang}', from_phone: 'From your phone settings',
+        tc_body: 'Placeholder. The Terms & Conditions text will be supplied by CPW / Hasbro legal, per language.',
+        pn_body: 'Placeholder. The privacy notice will be supplied by CPW / Hasbro legal, per language. Player names and scores stay on this phone and are cleared when the tab is closed.'
       },
       fr: {
-        pick_game:    'Choisissez un jeu',
-        players:      'Joueurs',
-        lets_play:    'C\'est parti !',
-        who_playing:  'Qui joue ?',
-        enter_names:  'Entrez 1 à 8 prénoms',
-        add_player:   '+ Ajouter un joueur',
-        coming_soon:  'BIENTÔT',
-        family_game:  'Jeux en\nFamille',
-      },
+        desktop_open: 'Ouvre cette page sur ton téléphone pour jouer !', loading: 'Chargement des jeux…',
+        still_loading: 'Toujours en cours… vérifie ta connexion', retry: 'Réessayer',
+        intro_head: '4 jeux. 1 téléphone. Tout le monde joue.', intro_s1: 'Ajoute les joueurs', intro_s2: 'Choisis un jeu',
+        intro_s3: 'Passe le téléphone à chaque tour', lets_go: "C'est parti",
+        terms_head: 'Avant de jouer', terms_1: 'Les prénoms restent sur ce téléphone.', terms_2: 'Rien n’est envoyé ni partagé.',
+        terms_4: 'Tes données restent protégées ici.', terms_3: 'Certains jeux font bouger. Joue prudemment.',
+        terms_tc: 'Conditions générales', terms_pn: 'Politique de confidentialité',
+        terms_ok: "J'ai 16 ans ou plus, ou je suis parent / tuteur, et j'accepte les Conditions", accept: 'Accepter et continuer',
+        who: 'Qui joue ?', add_1_8: 'Ajoute 1 à 8 joueurs.', add_player: 'Ajouter un joueur', max8: '8 joueurs max',
+        lets_play: "C'est parti !", player_n: 'Joueur {n}',
+        dup: '{name} joue déjà. Essaie « {name} B. » ou un surnom.',
+        remove_q: 'Retirer {name} ?', remove_body: 'Ses {pts} points seront perdus.', remove: 'Retirer', cancel: 'Annuler',
+        leaderboard: 'CLASSEMENT', play: 'JOUER', coming_soon: 'Bientôt', play_to_score: 'Joue à un jeu pour marquer',
+        settings: 'Réglages', language: 'Langue', players: 'Joueurs', n_players: '{n} joueurs · Modifier',
+        one_player: '1 joueur · Modifier', sound: 'Son', terms_privacy: 'Conditions et confidentialité',
+        clear_lb: 'Effacer le classement…', clear_lb_sub: 'Remet les points de tous à 0. Les joueurs restent.',
+        clear_q: 'Effacer le classement ?', clear_body: 'Les points de tous reviennent à 0. Les joueurs restent. Impossible d’annuler.',
+        clear_btn: 'Effacer le classement', close: 'Fermer', on: 'Oui', off: 'Non',
+        suggested: 'SUGGÉRÉES', all_langs: 'TOUTES LES LANGUES', automatic: 'Automatique · {lang}', from_phone: 'Selon les réglages du téléphone',
+        tc_body: 'Texte provisoire. Les Conditions générales seront fournies par CPW / Hasbro (juridique), par langue.',
+        pn_body: 'Texte provisoire. La politique de confidentialité sera fournie par CPW / Hasbro (juridique), par langue. Les prénoms et scores restent sur ce téléphone et sont effacés à la fermeture de l’onglet.'
+      }
+    });
+    var t = HG.t, el = HG.el, clear = HG.clear, tap = HG.onTap;
+    var GAME_ORDER = ['cluedo', 'connect4', 'twister', 'operation'];   // card order = UI order
+    var LIVE = { cluedo: true, connect4: true, twister: true, operation: true };
+    var CARD = {
+      cluedo:    ['assets/ui/cards/cluedo-bg.webp', 'assets/ui/cards/cluedo-fg.webp', 'height:119.44%;left:-4.87%;top:-8.69%;width:109.74%;'],
+      connect4:  ['assets/ui/cards/connect4-bg.webp', 'assets/ui/cards/connect4-fg.webp', 'height:90.11%;left:2.14%;top:-6.08%;width:95.72%;'],
+      twister:   ['assets/ui/cards/twister.webp', null, ''],
+      operation: ['assets/ui/cards/operation-bg.webp', 'assets/ui/cards/operation-fg.webp', 'height:90.11%;left:2.14%;top:5.38%;width:95.72%;']
     };
+    var LOGO = { cluedo: 'assets/ui/logo-cluedo.svg', connect4: 'assets/ui/logo-connect4.svg', twister: 'assets/ui/logo-twister.svg', operation: 'assets/ui/logo-operation.webp' };
 
-    var currentLang = localStorage.getItem('hg_lang') || detectLang();
-
-    function detectLang() {
-      var nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
-      return LANGUAGES.find(function(l){ return l.code === nav; }) ? nav : 'en';
-    }
-
-    function t(key) {
-      var dict = TRANSLATIONS[currentLang] || TRANSLATIONS['en'];
-      return dict[key] || TRANSLATIONS['en'][key] || key;
+    // ── Pages ──
+    var current = null, langReturn = null;
+    function show(id) {
+      document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
+      current = id;
     }
 
     function applyLang() {
-      document.getElementById('lang-label').textContent = currentLang.toUpperCase();
-      // Hero text
-      var hero = document.querySelector('.hero-title');
-      if (hero) hero.textContent = t('family_game').replace('\\n', '\n');
-      var heroSub = document.querySelector('.hero-sub');
-      if (heroSub) heroSub.textContent = t('pick_game');
-      // Players button
-      var btnPlayers = document.getElementById('btn-change-players');
-      if (btnPlayers) btnPlayers.textContent = t('players');
-      // Setup screen
-      var setupTitle = document.querySelector('.setup-title');
-      if (setupTitle) setupTitle.textContent = t('who_playing');
-      var setupSub = document.querySelector('.setup-sub');
-      if (setupSub) setupSub.textContent = t('enter_names');
-      var btnAdd = document.getElementById('btn-add-player');
-      if (btnAdd) btnAdd.textContent = t('add_player');
-      var btnStart = document.getElementById('btn-start-session');
-      if (btnStart) btnStart.textContent = t('lets_play');
-    }
-
-    function openLang() {
-      var opts = document.getElementById('lang-options');
-      while (opts.firstChild) opts.removeChild(opts.firstChild);
-      LANGUAGES.forEach(function(lang) {
-        var opt = document.createElement('div');
-        opt.className = 'lang-option' + (lang.code === currentLang ? ' active' : '');
-        var flag = document.createElement('span'); flag.className = 'lang-flag'; flag.textContent = lang.flag;
-        var label = document.createElement('span'); label.textContent = lang.label;
-        opt.appendChild(flag); opt.appendChild(label);
-        opt.addEventListener('click', function(e) {
-          e.stopPropagation();
-          currentLang = lang.code;
-          localStorage.setItem('hg_lang', currentLang);
-          applyLang();
-          document.getElementById('lang-overlay').classList.remove('open');
-        });
-        opts.appendChild(opt);
+      document.documentElement.lang = HG.getLang();
+      document.querySelectorAll('[data-t]').forEach(function (n) { n.textContent = t(n.dataset.t); });
+      document.querySelectorAll('.js-lang').forEach(function (b) {
+        clear(b); var g = el('img'); g.src = 'assets/ui/icon-globe.svg'; g.alt = ''; b.appendChild(g);
+        b.appendChild(document.createTextNode(HG.getLang().toUpperCase() + ' ▾'));
       });
-      document.getElementById('lang-overlay').classList.add('open');
+      if (current === 'p-players') renderPlayers(readRows());
+      if (current === 'p-home') renderHome();
     }
 
-    function closeLang(e) {
-      if (e.target === document.getElementById('lang-overlay'))
-        document.getElementById('lang-overlay').classList.remove('open');
-    }
-
-    document.getElementById('btn-lang').addEventListener('click', openLang);
-  </script>
-  <script>
-    // ── Boot ──────────────────────────────────────────────
+    // ── Boot & routing ──
     function boot() {
+      HG.lockGestures();
       applyLang();
-      if (!HG.isMobile()) {
-        document.getElementById('desktop-screen').classList.add('active');
-        return;
-      }
-      if (HG.hasPlayers()) {
-        showGames();
-      } else {
-        showSetup();
-      }
+      if (!HG.isMobile()) return show('desktop');
+      var returning = sessionStorage.getItem('hg_booted') === '1';   // ⑤ back from a game → straight to 05
+      show('p-loading');
+      preload(returning ? 0 : 3000, route);
+    }
+    function route() {
+      sessionStorage.setItem('hg_booted', '1');
+      if (HG.hasPlayers()) return goHome();                 // ② players in this session
+      if (HG.termsOutdated()) return show('p-terms');       // ④ terms version changed
+      if (HG.termsAccepted()) return openPlayers(false);    // ③ new session, terms already accepted
+      show('p-intro');                                      // ① first visit
     }
 
-    // ── Setup ─────────────────────────────────────────────
-    function showSetup() {
-      document.getElementById('games-page').classList.remove('active');
-      document.getElementById('setup-page').classList.add('active');
-      renderSetupRows();
+    // 01 · real asset count, shown ≈ 3 s, longer only if not ready; > 8 s → hint + Retry.
+    function preload(minMs, done) {
+      var urls = ['assets/ui/bg-pattern.webp', 'assets/ui/hasbro-games-logo.svg', 'assets/ui/minigames-logo.svg', 'assets/ui/minigames-logo-header.svg',
+        'assets/ui/logo-cluedo.svg', 'assets/ui/logo-connect4.svg', 'assets/ui/logo-twister.svg', 'assets/ui/logo-operation.webp', 'assets/ui/podium.webp']
+        .concat(GAME_ORDER.map(function (g) { return CARD[g][0]; }));
+      var left = urls.length, t0 = Date.now(), bar = document.getElementById('load-bar');
+      var slow = setTimeout(function () {
+        document.getElementById('load-txt').textContent = t('still_loading');
+        document.getElementById('load-retry').style.display = '';
+      }, 8000);
+      tap(document.getElementById('load-retry'), function () { location.reload(); });
+      function one() {
+        left--; bar.style.width = ((urls.length - left) / urls.length * 100) + '%';
+        if (left === 0) {
+          var fontsReady = document.fonts ? document.fonts.ready : Promise.resolve();
+          fontsReady.then(function () {
+            setTimeout(function () { clearTimeout(slow); done(); }, Math.max(0, minMs - (Date.now() - t0)));
+          });
+        }
+      }
+      urls.forEach(function (u) { var i = new Image(); i.onload = one; i.onerror = one; i.src = u; });
     }
 
-    var playerCount = 2;
+    // ── 02 · Intro ──
+    tap(document.getElementById('intro-go'), function () { show('p-terms'); });
 
-    function getCurrentDraftNames() {
-      var names = [];
-      for (var i = 0; i < playerCount; i++) {
-        var el = document.getElementById('p-' + i);
-        names.push(el ? el.value : '');
-      }
-      return names;
-    }
-
-    function renderSetupRows(existingNames) {
-      if (!existingNames) existingNames = getCurrentDraftNames();
-      var list = document.getElementById('players-list');
-      while (list.firstChild) list.removeChild(list.firstChild);
-
-      for (var i = 0; i < playerCount; i++) {
-        (function(idx) {
-          var row = document.createElement('div');
-          row.className = 'player-row';
-
-          var num = document.createElement('div');
-          num.className = 'player-num';
-          num.textContent = idx + 1;
-
-          var input = document.createElement('input');
-          input.className = 'player-input';
-          input.type = 'text';
-          input.placeholder = 'Player ' + (idx + 1);
-          input.maxLength = 16;
-          input.id = 'p-' + idx;
-          input.value = existingNames[idx] || '';
-          input.addEventListener('input', validateSetup);
-
-          row.appendChild(num);
-          row.appendChild(input);
-
-          if (playerCount > 1) {
-            var del = document.createElement('button');
-            del.className = 'btn-remove';
-            del.textContent = '×';
-            del.addEventListener('click', function(removeIdx) {
-              return function() {
-                var current = getCurrentDraftNames();
-                current.splice(removeIdx, 1);
-                playerCount--;
-                renderSetupRows(current);
-              };
-            }(idx));
-            row.appendChild(del);
-          }
-
-          list.appendChild(row);
-        })(i);
-      }
-
-      document.getElementById('btn-add-player').style.display = playerCount >= 8 ? 'none' : 'block';
-      validateSetup();
-    }
-
-    function validateSetup() {
-      var filled = 0;
-      for (var i = 0; i < playerCount; i++) {
-        var el = document.getElementById('p-' + i);
-        if (el && el.value.trim().length > 0) filled++;
-      }
-      document.getElementById('btn-start-session').disabled = filled < 1;
-    }
-
-    document.getElementById('btn-add-player').addEventListener('click', function() {
-      if (playerCount < 8) {
-        var current = getCurrentDraftNames();
-        playerCount++;
-        renderSetupRows(current);
-      }
+    // ── 03 · Terms ──
+    var ticked = false;
+    tap(document.getElementById('terms-check'), function () {
+      ticked = !ticked;
+      document.getElementById('terms-check').classList.toggle('on', ticked);
+      document.getElementById('terms-box').textContent = ticked ? '✓' : '';
+      document.getElementById('terms-go').disabled = !ticked;
     });
-
-    document.getElementById('btn-start-session').addEventListener('click', function() {
-      var names = [];
-      for (var i = 0; i < playerCount; i++) {
-        var el = document.getElementById('p-' + i);
-        var name = el ? el.value.trim() : '';
-        if (name) names.push(name);
-        else names.push('Player ' + (i + 1));
-      }
-      HG.setPlayers(names);
-      showGames();
+    tap(document.getElementById('terms-back'), function () { show('p-intro'); });
+    tap(document.getElementById('terms-go'), function () {
+      if (!ticked) return;
+      HG.acceptTerms();
+      openPlayers(false);
     });
+    document.querySelectorAll('.js-sheet').forEach(function (b) { tap(b, function () { termsSheet(b.dataset.sheet); }); });
 
-    // ── Games ─────────────────────────────────────────────
-    function showGames() {
-      document.getElementById('setup-page').classList.remove('active');
-      document.getElementById('games-page').classList.add('active');
-      renderChips();
+    // ── Sheets ──
+    var scrim = document.getElementById('scrim'), sheet = document.getElementById('sheet'), onSheetClose = null;
+    function openSheet(build, tall, onClose) {
+      clear(sheet); sheet.className = 'sheet' + (tall ? ' tall' : '');
+      sheet.appendChild(el('div', 'grab'));
+      build(sheet);
+      onSheetClose = onClose || null;
+      scrim.classList.add('open');
+    }
+    function closeSheet() { scrim.classList.remove('open'); var f = onSheetClose; onSheetClose = null; if (f) f(); }
+    scrim.addEventListener('click', function (e) { if (e.target === scrim) closeSheet(); });
+    (function swipeDown() {   // swipe down on the sheet's top area closes it
+      var y0 = null;
+      sheet.addEventListener('touchstart', function (e) {
+        var r = sheet.getBoundingClientRect();
+        y0 = e.touches[0].clientY - r.top < 70 ? e.touches[0].clientY : null;
+      }, { passive: true });
+      sheet.addEventListener('touchend', function (e) {
+        if (y0 !== null && e.changedTouches[0].clientY - y0 > 60) closeSheet();
+        y0 = null;
+      });
+    })();
+    function sheetHead(title) {
+      var h = el('div', 'sheet-head'); h.appendChild(el('div', 'sheet-title', title));
+      var x = el('button', 'iconbtn'); var xi = el('img'); xi.src = 'assets/ui/icon-close.svg'; xi.alt = 'Close'; x.appendChild(xi); tap(x, closeSheet); h.appendChild(x);
+      return h;
     }
 
-    function renderChips() {
-      var chips = document.getElementById('players-chips');
-      while (chips.firstChild) chips.removeChild(chips.firstChild);
-      HG.getPlayers().forEach(function(name) {
-        var chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.textContent = name;
-        chips.appendChild(chip);
+    // 03b · Terms / Privacy, without leaving the flow (a new tab would lose the session)
+    function termsSheet(which, back) {
+      openSheet(function (s) {
+        s.appendChild(sheetHead(t(which === 'privacy' ? 'terms_pn' : 'terms_tc')));
+        var body = el('div', 'sheet-scroll hg-scroll');
+        body.appendChild(el('p', null, t(which === 'privacy' ? 'pn_body' : 'tc_body')));
+        s.appendChild(body);
+        var c = el('button', 'hg-btn hg-btn-ghost', t('close')); tap(c, closeSheet); s.appendChild(c);
+      }, true, back);
+    }
+
+    // ── 04 · Players ──
+    var editMode = false, origNames = [], errors = {};
+    function openPlayers(edit) {
+      editMode = edit;
+      var names = edit ? HG.getPlayers() : ['', ''];
+      origNames = edit ? names.slice() : names.map(function () { return null; });
+      errors = {};
+      show('p-players');
+      renderPlayers(names.map(function (n, i) { return { value: n, orig: origNames[i] }; }));
+      if (!edit) setTimeout(function () { var f = document.querySelector('.pinput'); if (f) f.focus(); }, 50);
+    }
+    function readRows() {
+      return Array.prototype.map.call(document.querySelectorAll('.prow'), function (r) {
+        return { value: r.querySelector('input').value, orig: r.dataset.orig || null };
+      });
+    }
+    function renderPlayers(rows) {
+      var list = document.getElementById('plist'); clear(list);
+      list.classList.toggle('compact', rows.length >= 5);
+      document.querySelector('.players-sub').style.display = rows.length >= 5 ? 'none' : '';
+      document.querySelector('.pcard').classList.toggle('compact', rows.length >= 5);
+      rows.forEach(function (r, i) {
+        var row = el('div', 'prow'); if (r.orig) row.dataset.orig = r.orig;
+        row.appendChild(HG.avatar('', null, i));
+        var inp = el('input', 'pinput');
+        inp.type = 'text'; inp.maxLength = 16; inp.value = r.value; inp.placeholder = t('player_n', { n: i + 1 });
+        inp.autocomplete = 'off'; inp.setAttribute('autocapitalize', 'words'); inp.spellcheck = false;
+        inp.setAttribute('enterkeyhint', i === rows.length - 1 ? 'go' : 'next');
+        inp.addEventListener('input', function () { updateCta(); });
+        inp.addEventListener('blur', function () { validate(); });
+        inp.addEventListener('keydown', function (e) {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          var all = document.querySelectorAll('.pinput');
+          if (i < all.length - 1) all[i + 1].focus(); else submitPlayers();
+        });
+        inp.addEventListener('focus', function () { setTimeout(function () { inp.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 250); });
+        row.appendChild(inp);
+        if (rows.length > 1) {
+          var rm = el('button', 'prm'); rm.setAttribute('aria-label', 'Remove');
+          var rmi = el('img'); rmi.src = 'assets/ui/icon-close.svg'; rmi.alt = ''; rm.appendChild(rmi);
+          tap(rm, function () { removeRow(i); });
+          row.appendChild(rm);
+        }
+        list.appendChild(row);
+        var er = el('div', 'perr'); er.style.display = 'none'; list.appendChild(er);
+      });
+      paintErrors();
+      var full = rows.length >= 8;
+      document.getElementById('padd').style.display = full ? 'none' : '';
+      document.getElementById('pmax').style.display = full ? '' : 'none';
+      updateCta();
+    }
+    function removeRow(i) {
+      var rows = readRows(), r = rows[i];
+      var pts = r.orig ? HG.totalOf(r.orig) : 0;
+      function doRemove() { rows.splice(i, 1); errors = {}; renderPlayers(rows); validate(); }
+      if (pts > 0) {
+        // Removing a player with points asks first.
+        openSheet(function (s) {
+          s.appendChild(el('div', 'sheet-title', t('remove_q', { name: r.orig })));
+          s.appendChild(el('div', 'sub', t('remove_body', { pts: pts }))).style.color = '#555';
+          var yes = el('button', 'hg-btn hg-btn-primary', t('remove')); tap(yes, function () { closeSheet(); doRemove(); });
+          var no = el('button', 'hg-btn hg-btn-ghost', t('cancel')); tap(no, closeSheet);
+          s.appendChild(yes); s.appendChild(no);
+        });
+      } else doRemove();
+    }
+    tap(document.getElementById('padd'), function () {
+      var rows = readRows(); if (rows.length >= 8) return;
+      rows.push({ value: '', orig: null }); renderPlayers(rows);
+      var all = document.querySelectorAll('.pinput'); all[all.length - 1].focus();
+    });
+    // Names must be unique: trimmed, case-insensitive. Error on the later duplicate only.
+    function validate() {
+      var rows = readRows(), seen = [], next = {};
+      rows.forEach(function (r, i) {
+        var v = r.value.trim(); if (!v) return;
+        var first = seen.filter(function (s) { return HG.sameName(s, v); })[0];
+        if (first !== undefined) next[i] = t('dup', { name: first });
+        seen.push(v);
+      });
+      errors = next;
+      paintErrors();
+      updateCta();
+      return Object.keys(errors).length === 0;
+    }
+    function paintErrors() {
+      var inputs = document.querySelectorAll('.pinput'), msgs = document.querySelectorAll('.perr');
+      for (var i = 0; i < inputs.length; i++) {
+        inputs[i].classList.toggle('err', !!errors[i]);
+        msgs[i].textContent = errors[i] || ''; msgs[i].style.display = errors[i] ? '' : 'none';
+      }
+    }
+    function updateCta() {
+      var filled = readRows().filter(function (r) { return r.value.trim(); }).length;
+      document.getElementById('players-go').disabled = filled < 1 || Object.keys(errors).length > 0;
+    }
+    function submitPlayers() {
+      if (!validate()) return;
+      var rows = readRows();
+      if (!rows.some(function (r) { return r.value.trim(); })) return;
+      var names = [], renames = {};
+      rows.forEach(function (r, i) {
+        var n = r.value.trim();
+        if (!n) {   // empty rows become "Player N" (kept unique)
+          var k = i + 1; n = t('player_n', { n: k });
+          while (names.concat(rows.map(function (x) { return x.value.trim(); })).some(function (x) { return HG.sameName(x, n); })) n = t('player_n', { n: ++k });
+        }
+        names.push(n);
+        if (r.orig && r.orig !== n) renames[r.orig] = n;   // rename keeps the points
+      });
+      HG.setPlayers(names, renames);
+      document.activeElement && document.activeElement.blur();
+      history.replaceState(null, '', location.pathname);  // browser back can't return to onboarding
+      goHome();
+    }
+    tap(document.getElementById('players-go'), submitPlayers);
+    tap(document.getElementById('players-back'), function () {
+      if (editMode) goHome(); else show('p-terms');
+    });
+    // 04b · keyboard open: header collapses, CTA sits right above the keyboard.
+    if (window.visualViewport) {
+      var vv = window.visualViewport;
+      var onVV = function () {
+        var kb = window.innerHeight - vv.height > 150;
+        document.getElementById('p-players').classList.toggle('kb', kb);
+        document.getElementById('p-players').style.height = kb ? vv.height + 'px' : '';
+        document.getElementById('p-players').style.top = kb ? vv.offsetTop + 'px' : '';
+      };
+      vv.addEventListener('resize', onVV); vv.addEventListener('scroll', onVV);
+    }
+    document.getElementById('players-body').addEventListener('touchstart', function (e) {
+      if (!e.target.closest('input, button')) { var a = document.activeElement; if (a && a.tagName === 'INPUT') a.blur(); }
+    }, { passive: true });
+
+    // ── 05 · Home ──
+    function goHome() { show('p-home'); renderHome(); document.getElementById('home-body').scrollTop = 0; }
+    function renderHome() {
+      var players = HG.getPlayers(), tot = HG.totals(), scores = HG.getScores(), any = HG.anyScore();
+      // Ties share a place; on the global board tied players are listed in player-list order.
+      var ranked = HG.rank(players, function (a, b) { return tot[b] - tot[a]; });
+      var pod = document.getElementById('podium'); clear(pod);
+      pod.style.display = any ? '' : 'none';            // before any score: podium hidden
+      if (any) {
+        var base = el('img', 'base'); base.src = 'assets/ui/podium.webp'; base.alt = ''; pod.appendChild(base);
+        [0, 1, 2].forEach(function (i) {
+          var r = ranked[i]; if (!r) return;
+          var p = el('div', 'pod p' + (i + 1));
+          var av = HG.avatar(r.item); var m = av.querySelector('img'); m.className = 'm';
+          p.appendChild(m);
+          p.appendChild(el('div', 'nm', r.item));
+          pod.appendChild(p);
+        });
+      }
+      var cards = document.getElementById('cards'); clear(cards);
+      GAME_ORDER.forEach(function (g) {
+        var c = el('div', 'gcard' + (LIVE[g] ? '' : ' soon'));
+        var art = el('div', 'art');
+        var bg = el('img', 'bg'); bg.src = CARD[g][0]; bg.alt = ''; art.appendChild(bg);
+        if (CARD[g][1]) { var fg = el('img'); fg.src = CARD[g][1]; fg.alt = ''; fg.style.cssText = CARD[g][2]; art.appendChild(fg); }
+        c.appendChild(art);
+        var bar = el('div', 'bar'), lg = el('div', 'lg'), li = el('img'); li.src = LOGO[g]; li.alt = HG.GAMES[g].name; lg.appendChild(li);
+        bar.appendChild(lg);
+        var play = el('div', 'play', LIVE[g] ? t('play') : t('coming_soon'));
+        if (LIVE[g]) { var pi = el('img'); pi.src = 'assets/ui/icon-play.svg'; pi.alt = ''; play.appendChild(pi); }
+        bar.appendChild(play);
+        c.appendChild(bar);
+        tap(c, function () { HG.unlockAudio(); location.href = HG.GAMES[g].path; });
+        cards.appendChild(c);
+      });
+      var lb = document.getElementById('lb'); clear(lb);
+      ranked.forEach(function (r) {
+        var n = r.item, row = el('div', 'ntag'), inner = el('div', 'row');
+        inner.appendChild(HG.avatar(n));
+        var txt = el('div', 'txt'); txt.appendChild(el('b', null, n));
+        var pts = el('span', null, String(tot[n])); pts.appendChild(el('i', null, 'pts')); txt.appendChild(pts);
+        var split = GAME_ORDER.filter(function (g) { return scores[n] && scores[n][g]; })
+          .map(function (g) { return HG.GAMES[g].name + ' ' + Math.round(scores[n][g]); }).join(' · ');
+        if (split) txt.appendChild(el('small', null, split));
+        inner.appendChild(txt);
+        row.appendChild(inner);
+        row.appendChild(el('div', 'badge', any ? String(r.place) : '–'));
+        var ed = el('button', 'edit'); var ei = el('img'); ei.src = 'assets/ui/icon-edit.svg'; ei.alt = 'Edit players'; ed.appendChild(ei);
+        tap(ed, function (e) { openPlayers(true); });
+        row.appendChild(ed);
+        lb.appendChild(row);
+      });
+      if (!any) lb.appendChild(el('div', 'empty-note', t('play_to_score')));
+    }
+
+    // ── 05c · Settings ──
+    tap(document.getElementById('gear'), openSettings);
+    function langName(code) { var l = HG.LANGUAGES.filter(function (x) { return x.code === code; })[0]; return l ? l.native : code; }
+    function openSettings() {
+      openSheet(function (s) {
+        s.appendChild(sheetHead(t('settings')));
+        var n = HG.getPlayers().length;
+        var rows = [
+          [t('language'), langName(HG.getLang()) + ' ›', function () { closeSheet(); openLang('settings'); }],
+          [t('players'), (n === 1 ? t('one_player') : t('n_players', { n: n })) + ' ›', function () { closeSheet(); openPlayers(true); }],
+          [t('sound'), HG.soundOn() ? t('on') : t('off'), function (b) {
+            HG.setSound(!HG.soundOn()); b.lastChild.textContent = HG.soundOn() ? t('on') : t('off');
+          }],
+          [t('terms_privacy'), '›', function () { termsSheet('terms', openSettings); }]
+        ];
+        rows.forEach(function (r) {
+          var b = el('button', 'srow'); b.appendChild(el('span', null, r[0])); b.appendChild(el('span', null, r[1]));
+          tap(b, function () { r[2](b); }); s.appendChild(b);
+        });
+        var cl = el('button', 'srow danger'); cl.appendChild(el('span', null, t('clear_lb'))); cl.appendChild(el('small', null, t('clear_lb_sub')));
+        tap(cl, openClear); s.appendChild(cl);
+      });
+    }
+    // ── 05e · Clear leaderboard ──
+    function openClear() {
+      openSheet(function (s) {
+        s.appendChild(el('div', 'sheet-title', t('clear_q')));
+        var p = el('div', 'sub', t('clear_body')); p.style.color = '#555'; s.appendChild(p);
+        var yes = el('button', 'hg-btn hg-btn-primary', t('clear_btn'));
+        tap(yes, function () { HG.clearScores(); closeSheet(); goHome(); });
+        var no = el('button', 'hg-btn hg-btn-ghost', t('cancel')); tap(no, function () { openSettings(); });
+        s.appendChild(yes); s.appendChild(no);
       });
     }
 
-    document.getElementById('btn-change-players').addEventListener('click', function() {
-      playerCount = Math.max(HG.getPlayers().length, 2);
-      showSetup();
-      // Pre-fill existing names
-      var players = HG.getPlayers();
-      players.forEach(function(name, i) {
-        var el = document.getElementById('p-' + i);
-        if (el) el.value = name;
-      });
-      validateSetup();
-    });
-
-    // ── Navigate ──────────────────────────────────────────
-    function goTo(url) {
-      window.location.href = url;
+    // ── 05f · Language picker ──
+    document.querySelectorAll('.js-lang').forEach(function (b) { tap(b, function () { openLang(current); }); });
+    function openLang(from) {
+      langReturn = from;
+      document.getElementById('lang-search').value = '';
+      renderLang('');
+      show('p-lang');
     }
+    function langBack() {
+      if (langReturn === 'settings') { goHome(); openSettings(); }
+      else show(langReturn || 'p-intro');
+    }
+    tap(document.getElementById('lang-back'), langBack);
+    document.getElementById('lang-search').addEventListener('input', function (e) { renderLang(e.target.value); });
+    function renderLang(q) {
+      var list = document.getElementById('lang-list'); clear(list);
+      var ui = HG.getLang(), manual = HG.manualLang();
+      q = q.trim().toLowerCase();
+      function row(title, small, active, fn) {
+        var r = el('div', 'lrow'), txt = el('div');
+        txt.appendChild(el('b', null, title)); if (small) txt.appendChild(el('small', null, small));
+        r.appendChild(txt); if (active) r.appendChild(el('span', 'tick', '✓'));
+        tap(r, fn); list.appendChild(r);
+      }
+      function pick(code) { HG.setLang(code); applyLang(); langBack(); }
+      if (!q) {
+        list.appendChild(el('div', 'lang-sec', t('suggested')));
+        row(t('automatic', { lang: langName(HG.detectLang()) }), t('from_phone'), !manual, function () { pick(null); });
+        if (HG.detectLang() !== 'en') row('English', null, manual === 'en', function () { pick('en'); });
+      }
+      list.appendChild(el('div', 'lang-sec', t('all_langs')));
+      HG.LANGUAGES.slice().sort(function (a, b) { return a.native.localeCompare(b.native); }).forEach(function (l) {
+        var translated = l.names[ui] || l.native;
+        if (q && l.native.toLowerCase().indexOf(q) === -1 && translated.toLowerCase().indexOf(q) === -1 &&
+            Object.keys(l.names).every(function (k) { return l.names[k].toLowerCase().indexOf(q) === -1; })) return;
+        row(l.native, translated !== l.native ? translated : null, manual === l.code, function () { pick(l.code); });
+      });
+    }
+
+    // G6 · portrait only, on menus too
+    (function rotate() {
+      var o = el('div', 'hg-rotate');
+      o.appendChild(el('div', 'hg-rotate-icon', '↻ 📱'));
+      o.appendChild(el('div', 'hg-card-title', HG.t('rotate_title')));
+      document.body.appendChild(o);
+      function check() { o.classList.toggle('open', HG.isMobile() && window.innerWidth > window.innerHeight && window.innerHeight < 600 && !document.activeElement.matches('input')); }
+      window.addEventListener('resize', check); check();
+    })();
 
     boot();
   </script>

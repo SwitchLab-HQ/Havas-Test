@@ -1,667 +1,461 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KTRVRJ5D');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Twister — Finger Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+  <title>Twister — The Mini Games</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&family=Inter+Tight:wght@400;500;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
-
-    html, body {
-      width:100%; height:100%; overflow:hidden;
-      font-family:'Fredoka','Arial Rounded MT Bold',Arial,sans-serif;
-      background:#1a1a2e; color:#fff;
-      touch-action:none;
-    }
-
-    .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; }
+    /* Twister · logic: Figma wireframes board 04 (65:261) · look: Design UI section TWISTER (266:2031), Twister_00–14. */
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+    html, body { width:100%; height:100%; overflow:hidden; color:#fff; }
+    .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; }
     .screen.active { display:flex; }
+    .stack { justify-content:center; gap:18px; padding:20px 25px 24px; text-align:center; }
+    .stack > .hg-btn { margin-top:auto; }
 
-    /* ── Lobby ── */
-    #lobby-screen {
-      background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
-      gap:20px; padding:40px 24px; text-align:center;
+    /* ── Play (T3–T5) ── */
+    #play { padding:15px 20px 12px; gap:8px; }
+    .swatch { width:80px; height:80px; border-radius:50%; border:4px solid #fff; flex-shrink:0; }
+    .hg-banner-body { right:150px; }
+    .banner-swatch { position:absolute; left:176px; top:31px; }
+    .steps { display:flex; gap:4px; }
+    .stepdot { width:8px; height:8px; border-radius:50%; border:1px solid var(--dark-blue); background:transparent; }
+    .stepdot.done { background:var(--green); }
+    .stepdot.current { border-color:var(--bright-blue); }
+    .holdtrack { width:96px; height:8px; border-radius:4px; background:var(--dark-blue); overflow:hidden; }
+    .holdtrack i { display:block; height:100%; width:0; background:var(--green); }
+    .hold .banner-swatch { display:none; }
+    .hold .hg-banner-body { right:110px; }
+    .hold .hg-banner-right { right:10px; top:26px; }
+
+    .board-wrap { flex:1; width:100%; display:flex; align-items:center; justify-content:center; min-height:0; }
+    .board {
+      --dot: min(90px, calc((min(92vw, 352px) - 32px - 48px) / 3), calc((100vh - 290px - 72px) / 4));
+      display:grid; grid-template-columns:repeat(3, var(--dot)); grid-template-rows:repeat(4, var(--dot)); gap:24px;
+      padding:16px; border-radius:61px; background:#fff;
     }
-    #lobby-screen .logo { width:180px; height:auto; }
-    .lobby-title { font-size:20px; font-weight:700; color:#e9c46a; text-transform:uppercase; letter-spacing:3px; }
-    .player-turn-badge {
-      background:rgba(255,255,255,0.12);
-      border:2px solid rgba(255,255,255,0.2);
-      border-radius:20px;
-      padding:16px 28px;
-      text-align:center;
-    }
-    .player-turn-badge .badge-label { font-size:13px; color:rgba(255,255,255,0.6); text-transform:uppercase; letter-spacing:1px; }
-    .player-turn-badge .badge-name { font-size:28px; font-weight:700; color:#FFD700; margin-top:4px; }
-    .player-turn-badge .badge-sub { font-size:13px; color:rgba(255,255,255,0.5); margin-top:2px; }
-    .btn { padding:16px 48px; border:none; border-radius:50px; font-size:18px; font-weight:700; cursor:pointer; transition:transform 0.15s; text-transform:uppercase; letter-spacing:1px; font-family:inherit; }
-    .btn:active { transform:scale(0.95); }
-    .btn-play { background:linear-gradient(135deg,#e63946,#d62839); color:#fff; box-shadow:0 6px 24px rgba(230,57,70,0.4); }
-    .btn-secondary { background:rgba(255,255,255,0.1); color:#fff; border:2px solid rgba(255,255,255,0.2); font-size:14px; padding:12px 32px; }
-    .standings-mini { width:100%; max-width:320px; }
-    .standings-mini-row {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:8px 12px; border-radius:10px;
-      background:rgba(255,255,255,0.07); margin-bottom:6px;
-      font-size:14px;
-    }
-    .standings-mini-row .sname { font-weight:700; }
-    .standings-mini-row .sscore { color:#e9c46a; font-weight:600; }
-    .standings-mini-row .sdone { color:#2a9d8f; font-size:12px; }
+    .dot { width:var(--dot); height:var(--dot); border-radius:50%; position:relative; display:flex; align-items:center; justify-content:center; transition:transform .12s; }
+    .c-green  { background:#89BC0E; --ring:#648C05; }
+    .c-yellow { background:#FFEC00; --ring:#C9B800; }
+    .c-blue   { background:#00A0E4; --ring:#16749F; }
+    .c-red    { background:#E6003A; --ring:#A30029; }
+    .dot.held { box-shadow:inset 0 0 0 calc(var(--dot) * 0.2) var(--ring); }
+    .dot.wrong, .dot.lifted { box-shadow:0 0 0 5px var(--dark-blue); }
+    .dot.lifted { outline:4px dashed var(--dark-blue); outline-offset:5px; box-shadow:none; }
+    .dot .mark { font-family:var(--f-display); font-weight:900; font-size:calc(var(--dot) * 0.45); color:#fff; text-shadow:0 2px 6px rgba(0,31,59,.6); }
+    .board.frozen .dot:not(.held):not(.wrong):not(.lifted) { opacity:0.35; }
 
-    /* ── Game ── */
-    #game-screen { background:#111122; flex-direction:column; }
-    .game-header { position:absolute; top:0; left:0; right:0; z-index:20; padding:16px 16px 12px; background:linear-gradient(to bottom,rgba(17,17,34,0.95) 0%,rgba(17,17,34,0) 100%); pointer-events:none; }
-    .instruction-bar { background:rgba(255,255,255,0.1); backdrop-filter:blur(10px); border-radius:16px; padding:14px 20px; text-align:center; pointer-events:auto; }
-    .player-badge { font-size:12px; font-weight:700; color:#FFD700; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
-    .instruction-text { font-size:20px; font-weight:700; line-height:1.4; }
-    .instruction-sub { font-size:13px; color:#a0a0c0; margin-top:4px; }
-    .finger-name { text-transform:uppercase; font-weight:800; }
-    .progress-dots { display:flex; justify-content:center; gap:8px; margin-top:10px; }
-    .progress-dot { width:10px; height:10px; border-radius:50%; background:rgba(255,255,255,0.15); transition:background 0.3s,transform 0.3s; }
-    .progress-dot.done { background:#2a9d8f; transform:scale(1.2); }
-    .progress-dot.current { background:#e9c46a; transform:scale(1.3); animation:pulse-dot 1s ease-in-out infinite; }
-    @keyframes pulse-dot { 0%,100%{transform:scale(1.3);}50%{transform:scale(1.6);} }
+    /* T2 · Countdown */
+    .countdown { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; gap:10px; padding:56px 20px 20px; z-index:5; background:inherit; }
+    body.hg-game .countdown { background-color:var(--green); background-image:url('assets/bg-pattern.webp'); background-size:626px 352px; }
+    .countdown.on { display:flex; }
+    .countdown .hg-tag { width:100%; max-width:330px; margin-bottom:40px; }
+    .cd-num { animation:pop 0.5s ease-out; }
+    .cd-num.go { font-size:180px; }
+    .cd-hint { font-family:var(--f-ui); font-weight:700; font-size:15px; color:var(--dark-blue); margin-top:auto; }
+    @keyframes pop { 0%{transform:scale(1.5);} 100%{transform:scale(1);} }
 
-    .board { position:absolute; inset:0; display:grid; padding:120px 20px 20px; place-items:center; }
-    .circle { border-radius:50%; width:100%; aspect-ratio:1/1; max-width:100px; max-height:100px; display:flex; align-items:center; justify-content:center; transition:transform 0.2s,box-shadow 0.2s,opacity 0.2s; position:relative; }
-    .circle.target { animation:pulse-target 1.2s ease-in-out infinite; z-index:10; }
-    @keyframes pulse-target { 0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.3);}50%{box-shadow:0 0 0 12px rgba(255,255,255,0);} }
-    .circle.touched { transform:scale(0.9); opacity:0.7; }
-    .circle.dimmed { opacity:0.3; }
-    .color-red    { background:radial-gradient(circle at 35% 35%,#ff6b6b,#e63946); }
-    .color-blue   { background:radial-gradient(circle at 35% 35%,#74b9ff,#457b9d); }
-    .color-green  { background:radial-gradient(circle at 35% 35%,#55efc4,#2a9d8f); }
-    .color-yellow { background:radial-gradient(circle at 35% 35%,#ffeaa7,#e9c46a); }
+    /* T8 / T9 · fail card over the frozen board */
+    .failcard { position:absolute; left:20px; right:20px; bottom:14px; z-index:6; display:none; align-items:center; text-align:center;
+      border:4px solid var(--dark-blue); margin:0 auto; max-width:352px; }
+    .failcard.on { display:flex; }
 
-    /* ── Fail overlay ── */
-    #fail-overlay { position:absolute; inset:0; z-index:50; background:rgba(230,57,70,0.92); display:none; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center; padding:40px; }
-    #fail-overlay.active { display:flex; }
-    #fail-overlay h2 { font-size:28px; font-weight:800; }
-    #fail-overlay p { font-size:16px; opacity:0.85; line-height:1.5; }
-    .btn-retry { background:#fff; color:#e63946; box-shadow:0 4px 16px rgba(0,0,0,0.2); }
-
-    /* ── Countdown ── */
-    .countdown-overlay { position:absolute; inset:0; z-index:40; background:rgba(17,17,34,0.85); display:none; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
-    .countdown-overlay.active { display:flex; }
-    .countdown-name { font-size:22px; font-weight:700; color:#FFD700; }
-    .countdown-number { font-size:120px; font-weight:900; animation:count-pop 0.6s ease-out; }
-    @keyframes count-pop { 0%{transform:scale(2);opacity:0;}60%{transform:scale(0.9);opacity:1;}100%{transform:scale(1);opacity:1;} }
-
-    /* ── Results ── */
-    #results-screen { background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%); gap:16px; padding:40px 24px; text-align:center; overflow-y:auto; }
-    .results-title { font-size:26px; font-weight:700; color:#FFD700; paint-order:stroke fill; -webkit-text-stroke:1.5px #1a1a1a; }
-    .results-sub { font-size:14px; color:rgba(255,255,255,0.6); }
-    .results-list { width:100%; max-width:340px; }
-    .result-row {
-      display:flex; align-items:center; gap:12px;
-      padding:12px 16px; border-radius:14px;
-      background:rgba(255,255,255,0.07);
-      margin-bottom:8px;
-    }
-    .result-rank { font-size:22px; width:28px; text-align:center; flex-shrink:0; }
-    .result-name { flex:1; font-size:16px; font-weight:700; text-align:left; }
-    .result-time { font-size:14px; font-weight:600; color:#e9c46a; }
-    .result-row.first { background:rgba(233,196,106,0.2); border:2px solid rgba(233,196,106,0.4); }
-    .result-row.fail-row .result-time { color:#e63946; }
-
-    /* ── Leaderboard ── */
-    #leaderboard-screen { background:linear-gradient(135deg,#1a3a2e 0%,#16213e 100%); gap:16px; padding:40px 24px; text-align:center; overflow-y:auto; }
-    .lb-title { font-size:28px; font-weight:700; color:#55efc4; }
-    .lb-row {
-      display:flex; align-items:center; gap:12px;
-      padding:12px 16px; border-radius:14px;
-      background:rgba(255,255,255,0.07);
-      margin-bottom:8px; width:100%; max-width:340px;
-    }
-    .lb-row.lb-first { background:rgba(42,157,143,0.25); border:2px solid rgba(42,157,143,0.5); }
-    .lb-rank { font-size:22px; width:28px; text-align:center; flex-shrink:0; }
-    .lb-name { flex:1; font-size:16px; font-weight:700; text-align:left; }
-    .lb-score { font-size:14px; font-weight:600; color:#55efc4; }
-
-    /* Confetti */
-    .confetti-container { position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5; }
-    .confetti-piece { position:absolute; top:-20px; animation:confetti-fall linear forwards; }
-    @keyframes confetti-fall { 0%{transform:translateY(0) rotate(0deg);opacity:1;} 100%{transform:translateY(110vh) rotate(720deg);opacity:0;} }
+    /* T6 · GREAT! */
+    .great .hg-tag { width:100%; max-width:352px; justify-content:space-between; padding:14px 22px; }
+    .great .hg-tag .hg-tag-name { font-size:24px; }
+    .great .hg-tag-pts { margin-right:auto; }
+    .score-fail { background:var(--red); }
+    .score-fail .hg-score-val { font-size:52px; }
   </style>
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTRVRJ5D"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <div class="hg-body">
+    <div id="upnext" class="screen stack hg-scroll"></div>          <!-- T1 · Up next (G2) -->
 
-  <!-- Lobby: whose turn -->
-  <div id="lobby-screen" class="screen active">
-    <img src="assets/icon.webp" alt="Twister" class="logo">
-    <div class="lobby-title">Finger Edition</div>
-    <div class="player-turn-badge">
-      <div class="badge-label">Up next</div>
-      <div class="badge-name" id="lobby-player-name">Player 1</div>
-      <div class="badge-sub" id="lobby-turn-sub">Turn 1 of 1</div>
-    </div>
-    <div class="standings-mini" id="standings-mini"></div>
-    <button class="btn btn-play" id="btn-go">Go!</button>
-    <button class="btn btn-secondary" onclick="goBack()">Menu</button>
-  </div>
-
-  <!-- Game -->
-  <div id="game-screen" class="screen">
-    <div class="game-header">
-      <div class="instruction-bar">
-        <div class="player-badge" id="game-player-badge"></div>
-        <div class="instruction-text" id="instruction-text">Get ready...</div>
-        <div class="instruction-sub" id="instruction-sub"></div>
-        <div class="progress-dots" id="progress-dots"></div>
+    <div id="play" class="screen">                                    <!-- T2–T5, T8, T9 -->
+      <div class="hg-banner" id="banner">
+        <div class="hg-banner-bg"></div>
+        <div class="hg-tag"><div class="hg-tag-name" id="who"></div></div>
+        <div class="hg-banner-body">
+          <div class="hg-banner-title" id="call"></div>
+          <div id="under"></div>
+        </div>
+        <div class="banner-swatch swatch" id="swatch"></div>
+        <div class="hg-banner-right" id="timerslot"></div>
       </div>
+      <div class="board-wrap"><div class="board" id="board"></div></div>
+      <div class="countdown" id="countdown">
+        <div id="cd-tag"></div>
+        <div class="hg-count-word" id="cd-word"></div>
+        <div class="hg-count cd-num" id="cd-num"></div>
+        <div class="cd-hint">Hold your hand above the screen</div>
+      </div>
+      <div class="hg-card failcard" id="failcard"></div>
     </div>
-    <div class="board" id="board"></div>
-    <div class="countdown-overlay" id="countdown-overlay">
-      <div class="countdown-name" id="countdown-name"></div>
-      <div class="countdown-number" id="countdown-number">3</div>
-    </div>
-    <div id="fail-overlay">
-      <h2>Oops!</h2>
-      <p id="fail-message">You lifted a finger!</p>
-      <button class="btn btn-retry" id="btn-retry">Try Again</button>
-      <button class="btn btn-secondary" id="btn-skip">Next Player</button>
-    </div>
-  </div>
 
-  <!-- Round results -->
-  <div id="results-screen" class="screen">
-    <div class="confetti-container" id="confetti-round"></div>
-    <div class="results-title">Round Results</div>
-    <div class="results-sub" id="results-sub"></div>
-    <div class="results-list" id="results-list"></div>
-    <button class="btn btn-play" id="btn-next-player" style="margin-top:8px;">Next Player</button>
-    <button class="btn btn-secondary" id="btn-see-lb">See Leaderboard</button>
-  </div>
-
-  <!-- Final leaderboard -->
-  <div id="leaderboard-screen" class="screen">
-    <div class="confetti-container" id="confetti-lb"></div>
-    <div class="lb-title">Leaderboard</div>
-    <div id="lb-rows"></div>
-    <button class="btn btn-play" id="btn-play-again" style="margin-top:8px;">Play Again</button>
-    <button class="btn btn-secondary" onclick="goBack()">Menu</button>
+    <div id="great" class="screen stack great"></div>                <!-- T6 -->
+    <div id="results" class="screen stack hg-scroll"></div>          <!-- T7 -->
+    <div id="lb" class="screen stack hg-scroll"></div>               <!-- G3 -->
   </div>
 
   <script src="../../shared.js"></script>
   <script>
-    // ── Config ──
+    // ── Config (par / slow from playtests — placeholders) ──
+    var CFG = {
+      PAR_MS: 5000, SLOW_MS: 15000,   // speed curve, time includes the 2 s hold
+      CAP_MS: 45000,                  // 45 s cap → "Time's up!"
+      HOLD_MS: 2000,
+      CALLS: 4,
+      SAME_MOMENT_MS: 60,             // two touches closer than this = "two fingers at once" (to confirm on device)
+      NEXT_CALL_DELAY: 120,           // next call shows once the previous finger is confirmed down (> 100 ms)
+      CTA_DELAY: 800                  // fingers are still on the glass: don't let the release tap the button
+    };
     var COLORS = [
-      { name:'red',    label:'Red',    css:'color-red'    },
-      { name:'blue',   label:'Blue',   css:'color-blue'   },
-      { name:'green',  label:'Green',  css:'color-green'  },
-      { name:'yellow', label:'Yellow', css:'color-yellow' },
+      { id:'green',  word:'GREEN',  hex:'#89BC0E' },
+      { id:'yellow', word:'YELLOW', hex:'#FFEC00' },
+      { id:'blue',   word:'BLUE',   hex:'#00A0E4' },
+      { id:'red',    word:'RED',    hex:'#E6003A' }
     ];
-    var FINGERS = [
-      { name:'finger1', label:'1st finger' },
-      { name:'finger2', label:'2nd finger' },
-      { name:'finger3', label:'3rd finger' },
-      { name:'finger4', label:'4th finger' },
-    ];
-    var GRID_COLS = 3, GRID_ROWS = 4, TOTAL_CIRCLES = 12, NUM_STEPS = 4;
-    var FAIL_TIME = 99;
+    // 3 × 4 board, colours in rows (green, yellow, blue, red), 3 dots of each.
+    var BOARD = [];
+    COLORS.forEach(function (c) { for (var i = 0; i < 3; i++) BOARD.push(c); });
 
-    // ── Session state ──
-    var players = [];          // ['Alice','Bob',...]
-    var turnOrder = [];        // same, shuffled
-    var currentTurnIndex = 0;
-    var roundScores = {};      // { name: seconds | FAIL_TIME }
-    var sharedBoard = null;    // same board+steps for all
-    var sharedSteps = null;
+    var el = HG.el, clear = HG.clear, tap = HG.onTap;
 
-    // ── Game state ──
-    var currentStep = 0;
-    var steps = [];
-    var board = [];
-    var touchedCircles = [];
-    var activeTouches = new Map();
-    var gameActive = false;
-    var holdPhaseActive = false;
-    var timerStart = 0;
-    var holdInterval = null;
+    // ── Round state ──
+    var players = [], order = [], turn = 0, results = [], calls = [], committed = false;
+    // ── Attempt state ──
+    var phase = 'idle';             // idle | countdown | calls | hold | over
+    var step = 0, held = new Map(), dotFinger = [], lastTouchAt = -1e9;
+    var clock = HG.Clock(), tickTimer = null, holdTimer = null, cdTimer = null, callTimer = null;
+    var attemptStarted = false, replayOnResume = false;
+    var timer = HG.timerRing(); document.getElementById('timerslot').appendChild(timer.el);
 
-    // ── DOM ──
-    var boardEl      = document.getElementById('board');
-    var instrText    = document.getElementById('instruction-text');
-    var instrSub     = document.getElementById('instruction-sub');
-    var progressDots = document.getElementById('progress-dots');
-    var failOverlay  = document.getElementById('fail-overlay');
-    var failMsg      = document.getElementById('fail-message');
-    var countdownOv  = document.getElementById('countdown-overlay');
-    var countdownNum = document.getElementById('countdown-number');
-    var countdownName= document.getElementById('countdown-name');
-
-    // ── Boot ──
-    function boot() {
-      players = HG.getPlayers();
-      if (!players.length) players = ['Player 1'];
-      turnOrder = HG.shuffle(players.slice());
-      currentTurnIndex = 0;
-      roundScores = {};
-      // generate one board+steps for everyone
-      sharedBoard = generateBoard();
-      sharedSteps = generateSteps(sharedBoard);
-      showLobby();
+    function screen(id) {
+      document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
     }
+    function btn(text, cls, fn) { var b = el('button', 'hg-btn ' + cls, text); tap(b, fn); return b; }
 
-    // ── Lobby ──
-    function showLobby() {
-      showScreen('lobby-screen');
-      var name = turnOrder[currentTurnIndex];
-      document.getElementById('lobby-player-name').textContent = name;
-      document.getElementById('lobby-turn-sub').textContent =
-        'Turn ' + (currentTurnIndex + 1) + ' of ' + turnOrder.length;
-      renderStandingsMini();
-    }
-
-    function renderStandingsMini() {
-      var el = document.getElementById('standings-mini');
-      while (el.firstChild) el.removeChild(el.firstChild);
-      if (Object.keys(roundScores).length === 0) return;
-      turnOrder.forEach(function(name) {
-        var row = document.createElement('div');
-        row.className = 'standings-mini-row';
-        var nameEl = document.createElement('span');
-        nameEl.className = 'sname';
-        nameEl.textContent = name;
-        var scoreEl = document.createElement('span');
-        if (roundScores[name] !== undefined) {
-          if (roundScores[name] === FAIL_TIME) {
-            scoreEl.className = 'sscore';
-            scoreEl.textContent = 'Failed';
-            scoreEl.style.color = '#e63946';
-          } else {
-            scoreEl.className = 'sscore';
-            scoreEl.textContent = roundScores[name].toFixed(1) + 's';
-          }
-        } else {
-          scoreEl.className = 'sdone';
-          scoreEl.textContent = 'Waiting';
-        }
-        row.appendChild(nameEl);
-        row.appendChild(scoreEl);
-        el.appendChild(row);
-      });
-    }
-
-    document.getElementById('btn-go').addEventListener('click', function() {
-      startPlayerTurn();
-    });
-
-    // ── Player turn ──
-    async function startPlayerTurn() {
-      var name = turnOrder[currentTurnIndex];
-      board = sharedBoard.slice();
-      steps = sharedSteps.slice();
-      currentStep = 0;
-      touchedCircles = [];
-      activeTouches = new Map();
-      holdPhaseActive = false;
-      gameActive = false;
-
-      document.getElementById('game-player-badge').textContent = name;
-      showScreen('game-screen');
-      failOverlay.classList.remove('active');
-      renderBoard();
-
-      await doCountdown(name);
-      gameActive = true;
-      timerStart = Date.now();
-      showInstruction();
-    }
-
-    // ── Board/Steps generation ──
-    function generateBoard() {
-      var b = [];
-      for (var i = 0; i < TOTAL_CIRCLES; i++)
-        b.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
-      return b;
-    }
-
-    function generateSteps(b) {
-      var s = [];
-      var usedColors = [];
-      var usedCircles = [];
-      var shuffledColors = COLORS.slice();
-      for (var j = shuffledColors.length - 1; j > 0; j--) {
-        var r = Math.floor(Math.random() * (j+1));
-        var tmp = shuffledColors[j]; shuffledColors[j] = shuffledColors[r]; shuffledColors[r] = tmp;
+    // Calls: 4 colours, never one with no free dot left (3 dots each; max 2 calls per colour for variety).
+    function makeCalls() {
+      var used = {}, out = [];
+      while (out.length < CFG.CALLS) {
+        var c = COLORS[Math.floor(Math.random() * COLORS.length)];
+        if ((used[c.id] || 0) >= 2) continue;
+        if (out.length && out[out.length - 1].id === c.id) continue;
+        used[c.id] = (used[c.id] || 0) + 1;
+        out.push(c);
       }
-      for (var i = 0; i < NUM_STEPS; i++) {
-        var finger = FINGERS[i];
-        var color = shuffledColors[i];
-        var available = [];
-        b.forEach(function(c, idx) {
-          if (c.name === color.name && usedCircles.indexOf(idx) === -1) available.push({ color:c, idx:idx });
-        });
-        var targetIdx, targetColor;
-        if (available.length > 0) {
-          var pick = available[Math.floor(Math.random() * available.length)];
-          targetIdx = pick.idx; targetColor = color;
-        } else {
-          var any = [];
-          b.forEach(function(c, idx) {
-            if (usedCircles.indexOf(idx) === -1 && usedColors.indexOf(c.name) === -1) any.push({ color:c, idx:idx });
-          });
-          if (!any.length) b.forEach(function(c, idx) { if (usedCircles.indexOf(idx)===-1) any.push({ color:c, idx:idx }); });
-          var pick2 = any[Math.floor(Math.random() * any.length)];
-          targetIdx = pick2.idx; targetColor = pick2.color;
-        }
-        usedCircles.push(targetIdx);
-        usedColors.push(targetColor.name);
-        s.push({ finger:finger, color:targetColor, circleIndex:targetIdx });
-      }
-      return s;
+      return out;
     }
 
-    // ── Render board ──
+    function newRound() {
+      order = HG.shuffle(players);      // random draw, fixed for the round
+      turn = 0; results = []; committed = false;
+      calls = makeCalls();              // same calls for everyone in the round
+      showUpNext();
+    }
+
+    // ── T1 · Up next ──
+    function showUpNext() {
+      phase = 'idle';
+      screen('upnext');
+      HG.shell.upNext(document.getElementById('upnext'), order, turn, startAttempt);
+    }
+
+    // ── Board ──
+    var boardEl = document.getElementById('board');
     function renderBoard() {
-      while (boardEl.firstChild) boardEl.removeChild(boardEl.firstChild);
-      boardEl.style.gridTemplateColumns = 'repeat(' + GRID_COLS + ',1fr)';
-      boardEl.style.gridTemplateRows    = 'repeat(' + GRID_ROWS + ',1fr)';
-      boardEl.style.gap = '12px';
-      board.forEach(function(color, i) {
-        var circle = document.createElement('div');
-        circle.className = 'circle ' + color.css;
-        circle.dataset.index = i;
-        boardEl.appendChild(circle);
-      });
+      clear(boardEl);
+      boardEl.classList.remove('frozen');
+      BOARD.forEach(function (c, i) { var d = el('div', 'dot c-' + c.id); d.dataset.i = i; boardEl.appendChild(d); });
     }
-
-    function getColorHex(name) {
-      switch(name) {
-        case 'red':    return '#ff6b6b';
-        case 'blue':   return '#74b9ff';
-        case 'green':  return '#55efc4';
-        case 'yellow': return '#ffeaa7';
-        default:       return '#fff';
+    function dotEl(i) { return boardEl.children[i]; }
+    function dotAt(x, y) {
+      for (var i = 0; i < boardEl.children.length; i++) {
+        var r = boardEl.children[i].getBoundingClientRect();
+        var cx = r.left + r.width / 2, cy = r.top + r.height / 2, rad = r.width / 2;
+        if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= rad * rad) return i;
       }
-    }
-
-    function showInstruction() {
-      if (currentStep >= steps.length) return;
-      var step = steps[currentStep];
-      while (instrText.firstChild) instrText.removeChild(instrText.firstChild);
-      var fSpan = document.createElement('span');
-      fSpan.className = 'finger-name';
-      fSpan.textContent = step.finger.label;
-      var arrow = document.createTextNode(' → ');
-      var cSpan = document.createElement('span');
-      cSpan.style.color = getColorHex(step.color.name);
-      cSpan.textContent = step.color.label;
-      instrText.appendChild(fSpan);
-      instrText.appendChild(arrow);
-      instrText.appendChild(cSpan);
-      instrSub.textContent = 'Step ' + (currentStep+1) + ' of ' + steps.length + ' — tap the highlighted circle';
-      renderProgress();
-      highlightTarget();
-    }
-
-    function renderProgress() {
-      while (progressDots.firstChild) progressDots.removeChild(progressDots.firstChild);
-      steps.forEach(function(_, i) {
-        var dot = document.createElement('div');
-        dot.className = 'progress-dot' + (i < currentStep ? ' done' : i === currentStep ? ' current' : '');
-        progressDots.appendChild(dot);
-      });
-    }
-
-    function highlightTarget() {
-      var circles = boardEl.querySelectorAll('.circle');
-      circles.forEach(function(c, i) {
-        c.classList.remove('target','dimmed');
-        if (touchedCircles.indexOf(i) !== -1)          c.classList.add('touched');
-        else if (currentStep < steps.length && i === steps[currentStep].circleIndex) c.classList.add('target');
-        else                                             c.classList.add('dimmed');
-      });
-    }
-
-    // ── Countdown ──
-    function doCountdown(name) {
-      return new Promise(function(resolve) {
-        countdownOv.classList.add('active');
-        countdownName.textContent = name;
-        var count = 3;
-        countdownNum.textContent = count;
-        var iv = setInterval(function() {
-          count--;
-          if (count === 0) {
-            countdownNum.textContent = 'GO!';
-            countdownNum.style.animation = 'none';
-            void countdownNum.offsetWidth;
-            countdownNum.style.animation = 'count-pop 0.6s ease-out';
-          } else if (count < 0) {
-            clearInterval(iv);
-            countdownOv.classList.remove('active');
-            resolve();
-          } else {
-            countdownNum.textContent = count;
-            countdownNum.style.animation = 'none';
-            void countdownNum.offsetWidth;
-            countdownNum.style.animation = 'count-pop 0.6s ease-out';
-          }
-        }, 800);
-      });
-    }
-
-    // ── Touch handling ──
-    function getCircleFromTouch(touch) {
-      var el = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (el && el.classList.contains('circle')) return parseInt(el.dataset.index, 10);
       return -1;
     }
 
-    function handleTouchStart(e) {
-      e.preventDefault();
-      if (!gameActive) return;
-      for (var i = 0; i < e.changedTouches.length; i++) {
-        var touch = e.changedTouches[i];
-        var idx = getCircleFromTouch(touch);
-        if (idx === -1) continue;
-        activeTouches.set(touch.identifier, idx);
-        if (!holdPhaseActive && currentStep < steps.length && idx === steps[currentStep].circleIndex) {
-          touchedCircles.push(idx);
-          currentStep++;
-          if (currentStep >= steps.length) enterHoldPhase();
-          else showInstruction();
+    // ── Banner (T3–T5) ──
+    var bannerEl = document.getElementById('banner');
+    function renderUnder() {
+      var u = document.getElementById('under'); clear(u);
+      if (phase === 'hold') {
+        var tr = el('div', 'holdtrack'); tr.appendChild(el('i')); tr.firstChild.id = 'holdfill';
+        document.getElementById('call').appendChild(tr);
+      }
+      var s = el('div', 'steps');
+      for (var i = 0; i <= CFG.CALLS; i++)          // 4 fingers + the hold
+        s.appendChild(el('div', 'stepdot' + (i < step || (i === CFG.CALLS && phase === 'over' && step === CFG.CALLS) ? ' done' : i === step ? ' current' : '')));
+      u.appendChild(s);
+    }
+    function showCall() {
+      bannerEl.classList.remove('hold');
+      var c = calls[step], call = document.getElementById('call'); clear(call);
+      call.appendChild(document.createTextNode('Finger ' + (step + 1)));
+      var ar = el('img'); ar.src = '../../assets/ui/icon-arrow.svg'; ar.alt = '→'; ar.style.width = '15px'; ar.style.filter = 'brightness(0) invert(13%) sepia(30%) saturate(3000%) hue-rotate(190deg)';
+      call.appendChild(ar);
+      var sw = document.getElementById('swatch'); sw.style.background = c.hex; sw.setAttribute('aria-label', c.word);
+      renderUnder();
+      HG.play('step');
+    }
+    function setCallText(text) { var call = document.getElementById('call'); clear(call); call.appendChild(document.createTextNode(text)); }
+    function renderTime() {
+      var ms = phase === 'countdown' ? 0 : clock.ms();
+      timer.set(ms / CFG.CAP_MS, (ms / 1000).toFixed(1), 's');
+    }
+
+    // ── T2 · Countdown: Ready 3 · Steady 2 · Almost 1 · GO! ──
+    function startAttempt() {
+      clearTimers();
+      attemptStarted = true; replayOnResume = false;
+      phase = 'countdown'; step = 0; held = new Map(); dotFinger = []; lastTouchAt = -1e9;
+      screen('play');
+      document.getElementById('failcard').classList.remove('on');
+      bannerEl.classList.remove('hold'); timer.el.classList.remove('lg');
+      document.getElementById('who').textContent = order[turn];
+      renderBoard(); renderTime(); setCallText('Get ready'); renderUnder();
+      var cd = document.getElementById('countdown'); cd.classList.add('on');
+      var tagslot = document.getElementById('cd-tag'); clear(tagslot);
+      tagslot.appendChild(HG.tag(order[turn], { big: true, pts: HG.totals()[order[turn]] || 0 }));
+      var seq = [['READY', '3'], ['STEADY', '2'], ['ALMOST', '1'], ['GO!', '']], k = 0;
+      function tick() {
+        if (k === seq.length) {
+          cd.classList.remove('on');
+          phase = 'calls';
+          clock.start();
+          tickTimer = setInterval(onTick, 100);
+          showCall();
+          return;
         }
+        document.getElementById('cd-word').textContent = seq[k][0];
+        var num = document.getElementById('cd-num');
+        num.textContent = seq[k][1] || '0';
+        num.classList.toggle('go', k === 3);
+        num.style.visibility = k === 3 ? 'hidden' : '';
+        num.style.animation = 'none'; void num.offsetWidth; num.style.animation = '';
+        HG.play(k === 3 ? 'go' : 'tick');
+        k++;
+        cdTimer = setTimeout(tick, k === seq.length ? 500 : 1000);
+      }
+      tick();
+    }
+
+    function onTick() {
+      renderTime();
+      if (clock.ms() >= CFG.CAP_MS && (phase === 'calls' || phase === 'hold')) fail('timeout');
+    }
+    function clearTimers() {
+      clearInterval(tickTimer); clearInterval(holdTimer); clearTimeout(cdTimer); clearTimeout(callTimer);
+      tickTimer = holdTimer = cdTimer = callTimer = null;
+    }
+
+    // ── Touch ──
+    var play = document.getElementById('play');
+    play.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      if (phase !== 'calls' && phase !== 'hold') return;   // countdown touches ignored (no false start)
+      var now = performance.now();
+      // One finger at a time: two touches landing together = fail, wherever they land.
+      if (e.changedTouches.length > 1 || now - lastTouchAt < CFG.SAME_MOMENT_MS) {
+        lastTouchAt = now;
+        var t0 = e.changedTouches[0];
+        return fail('two', dotAt(t0.clientX, t0.clientY));
+      }
+      lastTouchAt = now;
+      var t = e.changedTouches[0], i = dotAt(t.clientX, t.clientY);
+      if (i === -1) return;                                  // between the dots / off the board: nothing
+      if (dotFinger[i]) return fail('held', i);              // a dot already held
+      if (phase === 'hold' || BOARD[i].id !== calls[step].id) return fail('wrong', i);
+      held.set(t.identifier, i);
+      dotFinger[i] = step + 1;
+      dotEl(i).classList.add('held');
+      step++;
+      if (step === CFG.CALLS) return startHold();
+      renderUnder();
+      callTimer = setTimeout(showCall, CFG.NEXT_CALL_DELAY);
+    }, { passive: false });
+
+    function onRelease(e) {
+      e.preventDefault();
+      if (phase !== 'calls' && phase !== 'hold') return;
+      for (var k = 0; k < e.changedTouches.length; k++) {
+        var id = e.changedTouches[k].identifier;
+        if (held.has(id)) return fail('slip', held.get(id));
       }
     }
-
-    function handleTouchEnd(e) {
+    play.addEventListener('touchend', onRelease, { passive: false });
+    play.addEventListener('touchcancel', onRelease, { passive: false });
+    play.addEventListener('touchmove', function (e) {
       e.preventDefault();
-      if (!gameActive) return;
-      for (var i = 0; i < e.changedTouches.length; i++) {
-        var touch = e.changedTouches[i];
-        var idx = activeTouches.get(touch.identifier);
-        activeTouches.delete(touch.identifier);
-        if (idx !== undefined && touchedCircles.indexOf(idx) !== -1 && (holdPhaseActive || currentStep > 0)) {
-          gameFail('You lifted a finger! Keep all fingers pressed down.');
-        }
+      if (phase !== 'calls' && phase !== 'hold') return;
+      for (var k = 0; k < e.changedTouches.length; k++) {
+        var t = e.changedTouches[k];
+        if (!held.has(t.identifier)) continue;
+        var i = held.get(t.identifier), r = dotEl(i).getBoundingClientRect();
+        var dx = t.clientX - (r.left + r.width / 2), dy = t.clientY - (r.top + r.height / 2);
+        if (Math.sqrt(dx * dx + dy * dy) > r.width * 0.7) return fail('slip', i);   // finger slid off its dot
       }
+    }, { passive: false });
+
+    // ── T5 · Hold! (time keeps running, stops when the 2 s hold is done) ──
+    function startHold() {
+      phase = 'hold';
+      clearTimeout(callTimer);
+      bannerEl.classList.add('hold'); timer.el.classList.add('lg');
+      setCallText('HOLD!');
+      renderUnder();
+      var t0 = clock.ms();
+      holdTimer = setInterval(function () {
+        var p = Math.min(1, (clock.ms() - t0) / CFG.HOLD_MS);
+        var f = document.getElementById('holdfill'); if (f) f.style.width = (p * 100) + '%';
+        if (p >= 1) success();
+      }, 30);
     }
 
-    function handleTouchMove(e) {
-      e.preventDefault();
-      if (!gameActive) return;
-      for (var i = 0; i < e.changedTouches.length; i++) {
-        var touch = e.changedTouches[i];
-        var prev = activeTouches.get(touch.identifier);
-        var next = getCircleFromTouch(touch);
-        if (prev !== next) {
-          activeTouches.set(touch.identifier, next);
-          if (prev !== undefined && touchedCircles.indexOf(prev) !== -1) {
-            var still = false;
-            activeTouches.forEach(function(c, tid) { if (tid !== touch.identifier && c === prev) still = true; });
-            if (!still) gameFail('You moved off a circle! Hold steady.');
-          }
-        }
+    // ── T6 · GREAT! ──
+    function success() {
+      clearTimers(); clock.stop(); phase = 'over';
+      var ms = clock.ms();
+      var r = { name: order[turn], ok: true, ms: ms, fingers: CFG.CALLS, seq: turn };
+      results.push(r);
+      HG.play('success'); HG.confetti();
+      turnScreen('GREAT!', r, 'Score:', (ms / 1000).toFixed(1), 's', false);
+    }
+
+    // ── T8 / T9 · Fail (not in Design UI yet: same system, board kept visible) ──
+    function fail(cause, dotIdx) {
+      if (phase === 'over') return;
+      clearTimers(); clock.stop(); phase = 'over';
+      var fingers = held.size;
+      var r = { name: order[turn], ok: false, ms: clock.ms(), fingers: fingers, cause: cause, seq: turn };
+      results.push(r);
+      HG.feedback('fail', boardEl);
+      boardEl.classList.add('frozen');
+      if (dotIdx !== undefined && dotIdx !== -1) {
+        var d = dotEl(dotIdx);
+        d.classList.add(cause === 'slip' ? 'lifted' : 'wrong');
+        d.appendChild(el('span', 'mark', '✕'));
       }
+      var called = step < CFG.CALLS ? calls[step].word + ' was called' : 'Hold, no new finger';
+      var title = { slip: 'A finger slipped', timeout: "Time's up!", two: 'Two fingers at once', held: 'That dot is taken', wrong: 'Wrong colour' }[cause];
+      setCallText('Oops!');
+      var card = document.getElementById('failcard'); clear(card);
+      card.appendChild(el('div', 'hg-card-title', 'Oops!'));
+      card.appendChild(el('div', 'hg-h2', title));
+      card.appendChild(el('div', 'hg-sub', cause === 'slip' ? 'Finger ' + (dotFinger[dotIdx] || '') + ' lifted' :
+        cause === 'timeout' ? '45 s reached' : cause === 'two' ? 'One finger at a time' : called));
+      var b = btn('Next', 'hg-btn-primary', function () { turnScreen('Oops!', r, 'Slipped', fingers + ' finger' + (fingers === 1 ? '' : 's'), '', true); });
+      b.disabled = true; setTimeout(function () { b.disabled = false; }, CFG.CTA_DELAY);
+      card.appendChild(b);
+      card.classList.add('on');
     }
 
-    // ── Hold phase ──
-    function enterHoldPhase() {
-      holdPhaseActive = true;
-      while (instrText.firstChild) instrText.removeChild(instrText.firstChild);
-      instrText.textContent = 'Hold steady!';
-      instrSub.textContent = 'Keep all fingers down for 2 seconds...';
-      renderProgress();
-      var countdown = 2;
-      holdInterval = setInterval(function() {
-        countdown--;
-        if (!gameActive) { clearInterval(holdInterval); return; }
-        if (countdown <= 0) {
-          clearInterval(holdInterval);
-          gameWin();
-        } else {
-          instrSub.textContent = 'Keep all fingers down for ' + countdown + ' second' + (countdown>1?'s':'') + '...';
-        }
-      }, 1000);
+    // T6 layout, also used after a fail: title · player tag · SCORE panel · NEXT
+    function turnScreen(title, r, label, value, unit, failed) {
+      var c = document.getElementById('great'); clear(c);
+      var h = el('div', 'hg-title shadow', title); c.appendChild(h);
+      var tg = HG.tag(r.name, { pts: HG.totals()[r.name] || 0 });
+      var finishers = results.filter(function (x) { return x.ok; });
+      var place = r.ok ? 1 + finishers.filter(function (x) { return x.ms < r.ms; }).length : null;
+      tg.appendChild(el('span', 'hg-move', '+' + Math.round(points(r)) + ' pts'));
+      c.appendChild(tg);
+      var panel = el('div', 'hg-score' + (failed ? ' score-fail' : ''));
+      panel.appendChild(el('div', 'hg-score-label', label + (failed ? '' : '')));
+      var v = el('div', 'hg-score-val', value); if (unit) v.appendChild(el('small', null, unit));
+      panel.appendChild(v);
+      c.appendChild(panel);
+      c.appendChild(el('div', 'hg-sub light', place === 1 ? 'Fastest so far!' : place ? HG.ordinal(place) + ' so far' : 'Counted as a slip'));
+      var b = btn(HG.t('next'), 'hg-btn-primary', showResults);
+      b.disabled = true; setTimeout(function () { b.disabled = false; }, CFG.CTA_DELAY);
+      c.appendChild(b);
+      screen('great');
     }
 
-    // ── Game outcomes ──
-    function gameFail(message) {
-      gameActive = false;
-      holdPhaseActive = false;
-      if (holdInterval) clearInterval(holdInterval);
-      failMsg.textContent = message;
-      failOverlay.classList.add('active');
+    // ── Points & ranking ──
+    function points(r) { return r.ok ? 50 + 50 * HG.speed(r.ms, CFG.PAR_MS, CFG.SLOW_MS) : 10 * r.fingers; }
+    function cmp(a, b) {
+      if (a.ok !== b.ok) return a.ok ? -1 : 1;
+      return a.ok ? a.ms - b.ms : b.fingers - a.fingers;
     }
 
-    function gameWin() {
-      gameActive = false;
-      holdPhaseActive = false;
-      var elapsed = ((Date.now() - timerStart) / 1000);
-      recordTurnResult(elapsed);
-    }
-
-    document.getElementById('btn-retry').addEventListener('click', function() {
-      failOverlay.classList.remove('active');
-      startPlayerTurn();
-    });
-
-    document.getElementById('btn-skip').addEventListener('click', function() {
-      failOverlay.classList.remove('active');
-      recordTurnResult(FAIL_TIME);
-    });
-
-    function recordTurnResult(seconds) {
-      var name = turnOrder[currentTurnIndex];
-      roundScores[name] = seconds;
-      currentTurnIndex++;
-
-      if (currentTurnIndex >= turnOrder.length) {
-        showRoundResults();
+    // ── T7 · Round results: after every turn (players still to play keep an empty badge);
+    //    after the last turn the scores are committed and NEXT goes to the leaderboard (G3). ──
+    function showResults() {
+      phase = 'idle';
+      attemptStarted = false;
+      var last = turn === order.length - 1;
+      var pts = {};
+      results.forEach(function (r) { pts[r.name] = points(r); });
+      if (last && !committed) { HG.commitRound('twister', pts); committed = true; }
+      var c = document.getElementById('results'); clear(c);
+      c.appendChild(el('div', 'hg-titlebar', 'Round results'));
+      var list = el('div', 'hg-ranks'); c.appendChild(list);
+      HG.rank(results, cmp).forEach(function (r) {
+        var res = r.item;
+        var right = res.ok ? [['b', (res.ms / 1000).toFixed(1)], [null, 's']]
+          : [[null, (res.cause === 'timeout' ? "Time's up · " : 'Slipped · ') + res.fingers + ' finger' + (res.fingers === 1 ? '' : 's')]];
+        list.appendChild(HG.rankRow(r.place, res.name, right));
+      });
+      order.slice(turn + 1).forEach(function (n) { list.appendChild(HG.rankRow(null, n, null)); });
+      if (last) {
+        c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showLeaderboard));
       } else {
-        showLobby();
+        turn++;
+        c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showUpNext));
       }
+      screen('results');
     }
 
-    // ── Results ──
-    function showRoundResults() {
-      showScreen('results-screen');
-      document.getElementById('results-sub').textContent = 'All players done!';
-
-      // Sort by time ascending (FAIL_TIME = last)
-      var sorted = Object.keys(roundScores).sort(function(a, b) {
-        return roundScores[a] - roundScores[b];
-      });
-
-      var list = document.getElementById('results-list');
-      while (list.firstChild) list.removeChild(list.firstChild);
-
-      var ranks = ['🥇','🥈','🥉'];
-      sorted.forEach(function(name, i) {
-        var row = document.createElement('div');
-        row.className = 'result-row' + (i === 0 ? ' first' : '') + (roundScores[name] === FAIL_TIME ? ' fail-row' : '');
-        var rankEl = document.createElement('div'); rankEl.className = 'result-rank'; rankEl.textContent = ranks[i] || (i+1)+'';
-        var nameEl = document.createElement('div'); nameEl.className = 'result-name'; nameEl.textContent = name;
-        var timeEl = document.createElement('div'); timeEl.className = 'result-time';
-        timeEl.textContent = roundScores[name] === FAIL_TIME ? 'Failed' : roundScores[name].toFixed(1) + 's';
-        row.appendChild(rankEl); row.appendChild(nameEl); row.appendChild(timeEl);
-        list.appendChild(row);
-      });
-
-      if (sorted.length > 0 && roundScores[sorted[0]] !== FAIL_TIME) {
-        spawnConfetti('confetti-round');
-      }
-
-      document.getElementById('btn-next-player').style.display = 'none';
-      document.getElementById('btn-see-lb').textContent = 'Done';
-    }
-
-    document.getElementById('btn-see-lb').addEventListener('click', showLeaderboard);
-    document.getElementById('btn-next-player').addEventListener('click', function() {
-      showLobby();
-    });
-
-    // ── Leaderboard ──
     function showLeaderboard() {
-      showScreen('leaderboard-screen');
-      var sorted = Object.keys(roundScores).sort(function(a,b) { return roundScores[a]-roundScores[b]; });
-      var rows = document.getElementById('lb-rows');
-      while (rows.firstChild) rows.removeChild(rows.firstChild);
-      var medals = ['🥇','🥈','🥉'];
-      sorted.forEach(function(name, i) {
-        var row = document.createElement('div');
-        row.className = 'lb-row' + (i===0 ? ' lb-first' : '');
-        var rk = document.createElement('div'); rk.className = 'lb-rank'; rk.textContent = medals[i] || (i+1)+'';
-        var nm = document.createElement('div'); nm.className = 'lb-name'; nm.textContent = name;
-        var sc = document.createElement('div'); sc.className = 'lb-score';
-        sc.textContent = roundScores[name] === FAIL_TIME ? 'Failed' : roundScores[name].toFixed(1)+'s';
-        row.appendChild(rk); row.appendChild(nm); row.appendChild(sc);
-        rows.appendChild(row);
-      });
-      spawnConfetti('confetti-lb');
+      screen('lb');
+      HG.shell.leaderboard(document.getElementById('lb'), newRound);
     }
 
-    document.getElementById('btn-play-again').addEventListener('click', function() {
-      currentTurnIndex = 0;
-      roundScores = {};
-      turnOrder = HG.shuffle(players.slice());
-      sharedBoard = generateBoard();
-      sharedSteps = generateSteps(sharedBoard);
-      showLobby();
+    // ── Shell ──
+    HG.shell.init({
+      game: 'twister',
+      logo: 'assets/logo.svg',
+      tip: 'Keep every finger down. Lift one and your run is over!',
+      howTo: {
+        lines: ['Watch the colour at the top', 'Put a finger on the right colour', 'Keep every finger down', 'Hold until finished', 'Fastest wins!'],
+        cta: 'Next'
+      },
+      currentPlayer: function () { return order[turn]; },
+      hasProgress: function () { return !committed && (turn > 0 || attemptStarted || results.length > 0); },
+      onPause: function () {
+        // Pausing breaks the finger hold: Resume replays the attempt from the countdown.
+        if (phase === 'countdown' || phase === 'calls' || phase === 'hold') {
+          clearTimers(); clock.stop(); phase = 'idle'; replayOnResume = true;
+          document.getElementById('countdown').classList.remove('on');
+        }
+      },
+      onResume: function () { if (replayOnResume) startAttempt(); }
     });
 
-    // ── Touch listeners ──
-    boardEl.addEventListener('touchstart',  handleTouchStart,  { passive:false });
-    boardEl.addEventListener('touchend',    handleTouchEnd,    { passive:false });
-    boardEl.addEventListener('touchcancel', handleTouchEnd,    { passive:false });
-    boardEl.addEventListener('touchmove',   handleTouchMove,   { passive:false });
-    document.addEventListener('touchmove',  function(e){e.preventDefault();}, { passive:false });
-
-    // ── Confetti ──
-    function spawnConfetti(containerId) {
-      var c = document.getElementById(containerId);
-      while (c.firstChild) c.removeChild(c.firstChild);
-      var cols = ['#e63946','#457b9d','#2a9d8f','#e9c46a','#ff6b6b','#74b9ff','#55efc4','#ffeaa7'];
-      for (var i = 0; i < 60; i++) {
-        var p = document.createElement('div');
-        p.className = 'confetti-piece';
-        p.style.left = Math.random()*100+'%';
-        p.style.backgroundColor = cols[Math.floor(Math.random()*cols.length)];
-        p.style.animationDuration = (1.5+Math.random()*2)+'s';
-        p.style.animationDelay = Math.random()*0.8+'s';
-        p.style.width  = (6+Math.random()*8)+'px';
-        p.style.height = (6+Math.random()*8)+'px';
-        p.style.borderRadius = Math.random()>0.5?'50%':'2px';
-        c.appendChild(p);
-      }
-    }
-
-    // ── Screen helper ──
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
-      document.getElementById(id).classList.add('active');
-    }
-
-    function goBack() { window.location.href = 'index.html'; }
-
-    // ── Start ──
-    boot();
+    players = HG.getPlayers();
+    if (!players.length) players = ['Player 1'];
+    HG.shell.begin(['assets/logo.svg', 'assets/bg-pattern.webp'], newRound);
   </script>
 </body>
 </html>

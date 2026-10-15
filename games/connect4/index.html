@@ -1,583 +1,604 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KTRVRJ5D');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>Connect 4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+  <title>Connect 4 — The Mini Games</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&family=Inter+Tight:wght@400;500;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../shared.css">
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; }
-
-    html, body {
-      width:100%; height:100%; overflow:hidden;
-      font-family: 'Fredoka', 'Arial Rounded MT Bold', Arial, sans-serif;
-      background-color: #1565C0;
-      background-image: radial-gradient(circle, rgba(255,255,255,0.22) 3px, transparent 3px);
-      background-size: 28px 28px;
-      color:#fff;
-      touch-action: none;
-    }
-
-    /* ── Screens ── */
-    .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; justify-content:center; }
+    /* Connect 4 · logic: wireframes board 05 (65:289) + 0. Claude/Connect4_Wireframe_Brief.md
+       · look: Design UI section CONNECT 4 (268:2036), Connect4_00–13. */
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+    html, body { width:100%; height:100%; overflow:hidden; color:#fff; }
+    .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; }
     .screen.active { display:flex; }
+    .stack { justify-content:center; gap:16px; padding:22px 20px 24px; text-align:center; }
+    .stack > .hg-btn:first-of-type { margin-top:auto; }
+    .tok { width:44px; height:44px; display:block; }
+    .note { font-family:var(--f-body); font-size:13px; color:#fff; }
+    .shout { font-family:var(--f-display); font-weight:900; font-size:30px; line-height:1.1; color:#fff; text-transform:uppercase;
+      -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; }
 
-    /* ── Shared btn ── */
-    .btn {
-      padding:16px 40px;
-      border:none; border-radius:50px;
-      font-size:18px; font-weight:700; font-family:inherit;
-      text-transform:uppercase; letter-spacing:1px;
-      cursor:pointer;
-      transition:transform 0.12s;
-    }
-    .btn:active { transform:scale(0.95); }
-    .btn-red   { background:linear-gradient(135deg,#E53935,#B71C1C); color:#fff; box-shadow:0 6px 20px rgba(0,0,0,0.3); }
-    .btn-ghost { background:rgba(255,255,255,0.15); color:#fff; border:2px solid rgba(255,255,255,0.3); font-size:14px; padding:12px 28px; }
+    /* C1 / C6 bracket */
+    .drawcard { gap:8px; text-align:left; }
+    .drawcard .hg-card-title { font-size:34px; text-align:left; }
+    .lbl { font-family:var(--f-display); font-weight:900; font-size:12px; letter-spacing:0.5px; text-transform:uppercase; margin-top:6px; }
+    .match { display:flex; align-items:center; gap:8px; height:40px; padding:0 16px; border-radius:20px; background:var(--dark-blue); color:#fff; }
+    .match .n { flex:1; min-width:0; font-family:var(--f-display); font-weight:900; font-size:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .match .n:last-child, .match .n.r { text-align:right; }
+    .match .v { font-family:var(--f-body); font-size:11px; opacity:0.6; }
+    .match.bye { background:rgba(0,31,59,0.55); }
+    .match.bye .v { opacity:1; font-size:12px; }
+    .match.next { background:var(--light-blue); color:var(--dark-blue); border:3px solid var(--dark-blue); height:48px; }
+    .match .next-tag { background:var(--dark-blue); color:#fff; font-family:var(--f-display); font-weight:900; font-size:11px; padding:4px 10px; border-radius:12px; }
+    .match .check { width:22px; height:22px; border-radius:50%; background:var(--green); color:var(--dark-blue); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; flex-shrink:0; }
+    .match .beat { font-family:var(--f-body); font-size:11px; opacity:0.7; flex:1; }
+    .match .plus { font-family:var(--f-ui); font-size:13px; }
+    .muted { font-family:var(--f-body); font-size:13px; opacity:0.7; }
+    .shuffling .n { opacity:0.5; }
+    .bracket { width:100%; max-width:352px; display:flex; flex-direction:column; gap:6px; text-align:left; }
+    .bracket .lbl { color:#fff; }
+    .bracket .info { height:44px; padding:0 16px; border-radius:22px; background:rgba(0,31,59,0.55); color:#fff; display:flex; align-items:center; font-family:var(--f-body); font-size:13px; }
 
-    /* ── Player select screen ── */
-    #select-screen { gap:20px; padding:32px 24px; text-align:center; }
-    .c4-logo { width:200px; margin-bottom:4px; filter:drop-shadow(0 4px 12px rgba(0,0,0,0.4)); }
-    .select-title { font-size:22px; font-weight:700; color:#FFD700; paint-order:stroke fill; -webkit-text-stroke:1.5px #1a1a1a; }
-    .select-sub { font-size:14px; color:rgba(255,255,255,0.7); }
+    /* C2 / C9 versus */
+    .vs { display:flex; align-items:flex-start; justify-content:center; gap:10px; width:100%; max-width:352px; }
+    .side { flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; min-width:0; }
+    .side .coin { width:120px; height:120px; display:block; }
+    .side .hg-tag { max-width:100%; }
+    .vs-x { font-family:var(--f-display); font-weight:900; font-size:34px; color:#fff; -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; margin-top:40px; }
+    .cpu { width:120px; height:120px; border-radius:30px; background:var(--dark-blue); display:flex; align-items:center; justify-content:center; font-size:64px; }
 
-    .vs-row {
-      display:flex; align-items:center; gap:16px; width:100%; max-width:340px;
-    }
-    .player-pick {
-      flex:1;
-      background:rgba(255,255,255,0.12);
-      border:3px solid rgba(255,255,255,0.2);
-      border-radius:16px;
-      padding:14px 10px;
-      text-align:center;
-      cursor:pointer;
-      transition:border-color 0.2s, background 0.2s;
-    }
-    .player-pick.p1 { border-color:#FFD700; background:rgba(255,215,0,0.15); }
-    .player-pick.p2 { border-color:#E53935; background:rgba(229,57,53,0.15); }
-    .player-pick .token {
-      width:48px; height:48px; margin:0 auto 8px; object-fit:contain; display:block;
-    }
-    .player-pick .pick-name { font-size:16px; font-weight:700; }
-    .player-pick .pick-hint { font-size:11px; opacity:0.6; margin-top:2px; }
-    .vs-label { font-size:22px; font-weight:700; color:#FFD700; paint-order:stroke fill; -webkit-text-stroke:1px #1a1a1a; }
+    /* C3 match */
+    #match { padding:15px 20px 12px; gap:6px; }
+    .ring { position:absolute; left:176px; top:31px; width:80px; height:80px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; }
+    .ring img { width:72px; height:72px; }
+    .ring .cpuface { font-size:40px; }
+    .hg-banner-body { right:180px; }
+    .meta { position:absolute; right:16px; top:56px; text-align:right; color:var(--dark-blue); }
+    .meta b { display:block; font-family:var(--f-display); font-weight:900; font-size:14px; }
+    .meta span { font-family:var(--f-body); font-size:12px; }
+    .boardbox { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; touch-action:none; min-height:0; }
+    .boardinner { --w: min(350px, 92vw); width:var(--w); position:relative; }
+    .ghostrow { display:grid; grid-template-columns:repeat(7,1fr); height:calc((var(--w) - 26px) / 7 + 6px); padding:0 13px; }
+    .ghost { display:flex; align-items:center; justify-content:center; }
+    .ghost img { width:84%; opacity:0.6; }
+    .ghost.full img { opacity:1; width:62%; }
+    .board { position:relative; display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:9px; border-radius:32px; border:4px solid #fff; background:var(--bright-blue); }
+    .colhl { position:absolute; top:6px; bottom:6px; border-radius:25px; background:rgba(255,255,255,0.3); display:none; pointer-events:none; }
+    .cell { aspect-ratio:1/1; border-radius:50%; background:var(--dark-blue); position:relative; z-index:1; }
+    .cell img { width:100%; height:100%; display:block; pointer-events:none; }
+    .cell img.falling { animation:fall var(--dur) cubic-bezier(0.5,0,0.75,0.4) both; }
+    @keyframes fall { from { transform:translateY(var(--from)); } to { transform:translateY(0); } }
+    .board.dim .cell { opacity:0.35; }
+    .board.dim .cell.win { opacity:1; box-shadow:0 0 0 4px #fff; animation:win 0.6s ease-in-out infinite alternate; }
+    @keyframes win { from { transform:scale(1); } to { transform:scale(1.1); } }
+    .board.drawn { opacity:0.5; }
+    .boardnote { font-family:var(--f-body); font-size:13px; color:#fff; margin-top:12px; min-height:18px; }
 
-    .select-dropdown {
-      width:100%; max-width:340px;
-      background:rgba(255,255,255,0.12);
-      border:2px solid rgba(255,255,255,0.3);
-      border-radius:12px;
-      padding:10px;
-      display:none;
-      flex-direction:column;
-      gap:6px;
-    }
-    .select-dropdown.visible { display:flex; }
-    .pick-option {
-      padding:10px 14px;
-      border-radius:8px;
-      cursor:pointer;
-      font-size:15px;
-      font-weight:600;
-    }
-    .pick-option:hover, .pick-option:active { background:rgba(255,255,255,0.2); }
-
-    /* ── Game screen ── */
-    #game-screen { padding:0; justify-content:flex-start; }
-
-    .turn-bar {
-      width:100%; padding:14px 20px 10px;
-      display:flex; align-items:center; justify-content:space-between;
-      flex-shrink:0;
-    }
-    .turn-info {
-      display:flex; align-items:center; gap:10px;
-    }
-    .turn-token { width:32px; height:32px; flex-shrink:0; object-fit:contain; }
-    .turn-name { font-size:18px; font-weight:700; }
-    .turn-label { font-size:12px; color:rgba(255,255,255,0.6); }
-    .btn-back-sm {
-      background:rgba(255,255,255,0.15);
-      border:none; border-radius:50px;
-      padding:8px 14px;
-      color:#fff; font-size:12px; font-family:inherit;
-      cursor:pointer;
-    }
-
-    /* drop indicators */
-    .drop-row {
-      width:100%;
-      display:grid;
-      grid-template-columns:repeat(7,1fr);
-      padding:0 10px 4px;
-      flex-shrink:0;
-    }
-    .drop-arrow {
-      display:flex; align-items:center; justify-content:center;
-      height:28px; font-size:18px;
-      opacity:0; transition:opacity 0.2s;
-    }
-    .drop-arrow.visible { opacity:1; }
-
-    /* board */
-    .board-wrap {
-      flex:1;
-      width:100%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:0 10px 10px;
-    }
-    .board {
-      background:#0D47A1;
-      border-radius:16px;
-      padding:10px;
-      box-shadow:0 8px 32px rgba(0,0,0,0.4);
-      display:grid;
-      grid-template-columns:repeat(7,1fr);
-      grid-template-rows:repeat(6,1fr);
-      gap:6px;
-      width:100%;
-      max-width:400px;
-      aspect-ratio:7/6;
-    }
-    .cell {
-      border-radius:50%;
-      background:rgba(255,255,255,0.15);
-      cursor:pointer;
-      aspect-ratio:1/1;
-      overflow:hidden;
-      position:relative;
-    }
-    /* PNG coins — background removed, image fills the cell */
-    .cell.p1, .cell.p2 { background:transparent; }
-    .cell img {
-      width:100%; height:100%;
-      display:block;
-      pointer-events:none;
-      -webkit-user-drag:none;
-      user-select:none;
-    }
-    /* Floating coin overlay that falls into the cell (no cell displacement) */
-    .coin-overlay {
-      position: absolute;
-      pointer-events: none;
-      border-radius: 50%;
-      z-index: 20;
-      /* linear outer timing — per-keyframe easings control the feel */
-      animation: overlay-fall var(--fall-dur, 0.5s) linear both;
-    }
-    @keyframes overlay-fall {
-      /* 0 → 80%: coin accelerates downward, finishes spin on impact */
-      0% {
-        transform: translateY(var(--fall-from-y, -100px)) rotate(0deg);
-        animation-timing-function: cubic-bezier(0.55, 0, 0.75, 0.45);
-      }
-      /* 80%: lands exactly at destination — never goes below this */
-      80% {
-        transform: translateY(0) rotate(var(--final-rot, 0deg));
-        animation-timing-function: cubic-bezier(0.2, 0, 0.4, 1);
-      }
-      /* 90%: bounces UP (like hitting the plastic grid) */
-      90% {
-        transform: translateY(-7px) rotate(var(--final-rot, 0deg));
-        animation-timing-function: cubic-bezier(0.4, 0, 1, 0.6);
-      }
-      /* 100%: settles back to resting position */
-      100% {
-        transform: translateY(0) rotate(var(--final-rot, 0deg));
-      }
-    }
-    .cell.win { animation:win-pulse 0.6s ease-in-out infinite alternate; }
-    @keyframes win-pulse {
-      from { transform:scale(1); }
-      to   { transform:scale(1.12); box-shadow:0 0 0 4px rgba(255,255,255,0.7); }
-    }
-
-    /* column tap zones */
-    .col-zones {
-      position:absolute;
-      inset:0;
-      display:grid;
-      grid-template-columns:repeat(7,1fr);
-      pointer-events:none;
-    }
-    .col-zone {
-      pointer-events:auto;
-      cursor:pointer;
-    }
-
-    /* ── Win screen ── */
-    #win-screen { gap:24px; padding:40px 24px; text-align:center; }
-    .win-emoji { font-size:80px; line-height:1; }
-    .win-title { font-size:36px; font-weight:700; color:#FFD700; paint-order:stroke fill; -webkit-text-stroke:2px #1a1a1a; }
-    .win-name  { font-size:28px; font-weight:700; }
-    .win-sub   { font-size:15px; color:rgba(255,255,255,0.7); }
-    .win-token-big {
-      width:80px; height:80px;
-      margin:0 auto; object-fit:contain; display:block;
-    }
-
-    /* draw screen */
-    #draw-screen { gap:24px; padding:40px 24px; text-align:center; }
-    .draw-title { font-size:32px; font-weight:700; color:#fff; }
+    /* C5 / C11 winner card */
+    .wincard { width:100%; max-width:352px; border-radius:40px; background:var(--dark-blue); padding:26px 20px 30px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+    .wincard .coin { width:130px; height:130px; margin-bottom:8px; }
+    .wincard .small { font-family:var(--f-display); font-weight:900; font-size:18px; text-transform:uppercase; }
+    .wincard .big { font-family:var(--f-display); font-weight:900; font-size:46px; line-height:1; text-transform:uppercase; }
   </style>
 </head>
 <body>
-
-  <!-- Player Select -->
-  <div id="select-screen" class="screen active">
-    <img src="assets/icon.webp" alt="Connect 4" class="c4-logo">
-    <div class="select-title">Choose your players</div>
-    <div class="select-sub">Tap a name to change</div>
-
-    <div class="vs-row">
-      <div class="player-pick" id="pick-p1" onclick="openPicker(1)">
-        <img class="token" src="assets/yellow.png" alt="Yellow coin">
-        <div class="pick-name" id="pick-p1-name">Player 1</div>
-        <div class="pick-hint">tap to change</div>
-      </div>
-      <div class="vs-label">VS</div>
-      <div class="player-pick" id="pick-p2" onclick="openPicker(2)">
-        <img class="token" src="assets/red.png" alt="Red coin">
-        <div class="pick-name" id="pick-p2-name">Player 2</div>
-        <div class="pick-hint">tap to change</div>
-      </div>
-    </div>
-
-    <div class="select-dropdown" id="picker-dropdown"></div>
-    <button class="btn btn-red" id="btn-play-c4">Play!</button>
-    <button class="btn btn-ghost" onclick="goBack()">Back</button>
-  </div>
-
-  <!-- Game -->
-  <div id="game-screen" class="screen">
-    <div class="turn-bar">
-      <div class="turn-info">
-        <img class="turn-token" id="turn-token" src="" alt="">
-        <div>
-          <div class="turn-name" id="turn-name">Player 1</div>
-          <div class="turn-label">your turn</div>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTRVRJ5D"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <div class="hg-body">
+    <div id="draw" class="screen stack hg-scroll"></div>      <!-- C1 -->
+    <div id="next" class="screen stack"></div>                <!-- C2 / C9 -->
+    <div id="match" class="screen">                           <!-- C3 / C3b / C4 / C10 -->
+      <div class="hg-banner" id="banner">
+        <div class="hg-banner-bg"></div>
+        <div class="hg-tag"><div class="hg-tag-name" id="who"></div></div>
+        <div class="hg-banner-body">
+          <div class="hg-banner-title" id="turnTitle"></div>
+          <div class="hg-banner-sub" id="turnSub"></div>
         </div>
+        <div class="ring" id="ring"></div>
+        <div class="meta" id="meta"></div>
       </div>
-      <button class="btn-back-sm" onclick="goBack()">Menu</button>
-    </div>
-
-    <div class="drop-row" id="drop-row">
-      <!-- arrows injected by JS -->
-    </div>
-
-    <div class="board-wrap">
-      <div style="position:relative; width:100%; max-width:400px;">
-        <div class="board" id="board"></div>
-        <div class="col-zones" id="col-zones"></div>
+      <div class="boardbox" id="boardbox">
+        <div class="boardinner">
+          <div class="ghostrow" id="ghostrow"></div>
+          <div class="board" id="board"><div class="colhl" id="colhl"></div></div>
+        </div>
+        <div class="boardnote" id="boardnote"></div>
       </div>
     </div>
-  </div>
-
-  <!-- Win -->
-  <div id="win-screen" class="screen">
-    <div class="win-emoji">🏆</div>
-    <img class="win-token-big" id="win-token" src="" alt="">
-    <div class="win-title">Winner!</div>
-    <div class="win-name" id="win-name">Player 1</div>
-    <div class="win-sub" id="win-sub">connected 4 in a row</div>
-    <button class="btn btn-red" id="btn-play-again">Play Again</button>
-    <button class="btn btn-ghost" onclick="goBack()">Back to Menu</button>
-  </div>
-
-  <!-- Draw -->
-  <div id="draw-screen" class="screen">
-    <div style="font-size:64px;">🤝</div>
-    <div class="draw-title">It's a draw!</div>
-    <div class="win-sub">The board is full — well played both!</div>
-    <button class="btn btn-red" id="btn-play-again-draw">Play Again</button>
-    <button class="btn btn-ghost" onclick="goBack()">Back to Menu</button>
+    <div id="won" class="screen stack hg-scroll"></div>       <!-- C5 / C8 / C11 -->
+    <div id="bracket" class="screen stack hg-scroll"></div>   <!-- C6 -->
+    <div id="champ" class="screen stack hg-scroll"></div>     <!-- C7 -->
+    <div id="lb" class="screen stack hg-scroll"></div>        <!-- G3 -->
   </div>
 
   <script src="../../shared.js"></script>
   <script>
     var COLS = 7, ROWS = 6;
-    var state = [];      // [row][col] 0=empty,1=p1,2=p2
-    var currentPlayer = 1;
-    var gameOver = false;
-    var hoverCol = -1;
-    var p1Name = 'Player 1';
-    var p2Name = 'Player 2';
-    var pickerTarget = 1;
+    var Y = 1, R = 2;                       // Yellow always starts
+    var IMG = { 1: 'assets/token-yellow.webp', 2: 'assets/token-red.webp' };
+    var CPU = 'Computer';
+    var el = HG.el, clear = HG.clear, tap = HG.onTap;
 
-    // ── Init ──────────────────────────────────────────────
-    function init() {
-      var players = HG.getPlayers();
-      p1Name = players[0] || 'Player 1';
-      p2Name = players[1] || 'Player 2';
-      document.getElementById('pick-p1-name').textContent = p1Name;
-      document.getElementById('pick-p2-name').textContent = p2Name;
+    // ── Tournament state ──
+    var players = [], solo = false, drawOrder = [], rounds = [], totalRounds = 1, roundIdx = 0, matchIdx = 0;
+    var stats = {};           // name → { out: round lost in (or totalRounds+1), wonMoves: [], lastMoves, byes }
+    var committed = false, anyDrop = false;
+    // ── Match state ──
+    var board = [], turnColor = Y, yellow = null, red = null, busy = false, over = false, moves = {};
+    var aim = -1, aimPointer = null, cpuTimer = null;
+
+    function screen(id) {
+      document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
+      document.getElementById(id).classList.add('active');
+    }
+    function tok(color, cls) { var i = el('img', cls || 'tok'); i.src = IMG[color]; i.alt = color === Y ? 'Yellow' : 'Red'; return i; }
+    function btn(text, cls, fn) { var b = el('button', 'hg-btn ' + cls, text); tap(b, fn); return b; }
+    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+    // ── Start ──
+    function start() {
+      players = HG.getPlayers(); if (!players.length) players = ['Player 1'];
+      solo = players.length === 1;
+      committed = false; anyDrop = false; stats = {};
+      players.concat(solo ? [CPU] : []).forEach(function (n) { stats[n] = { out: 0, wonMoves: [], lastMoves: 0, byes: 0 }; });
+      if (solo) return showSolo();
+      totalRounds = Math.ceil(Math.log2(players.length));
+      drawOrder = HG.shuffle(players);     // random bracket, drawn once
+      rounds = []; roundIdx = 0; matchIdx = 0;
+      makeRound(drawOrder.slice());
+      showDraw();
     }
 
-    // ── Player picker ──────────────────────────────────────
-    function openPicker(target) {
-      pickerTarget = target;
-      var players = HG.getPlayers();
-      var dropdown = document.getElementById('picker-dropdown');
-      while (dropdown.firstChild) dropdown.removeChild(dropdown.firstChild);
+    // Pair a round. Odd count → one bye, random among those with the fewest byes.
+    function makeRound(names) {
+      var bye = null;
+      if (names.length % 2) {
+        var least = Math.min.apply(null, names.map(function (n) { return stats[n].byes; }));
+        var pool = names.filter(function (n) { return stats[n].byes === least; });
+        bye = pool[Math.floor(Math.random() * pool.length)];
+        stats[bye].byes++;
+        names = names.filter(function (n) { return n !== bye; });
+      }
+      var matches = [];
+      for (var i = 0; i < names.length; i += 2) matches.push({ a: names[i], b: names[i + 1], winner: null, loser: null });
+      rounds.push({ matches: matches, bye: bye });
+    }
+    function roundName(i) { return i === totalRounds - 1 ? 'Final' : 'Round ' + (i + 1); }
+    function nextRoundName(i) { return i + 1 === totalRounds - 1 ? 'the final' : 'round ' + (i + 2); }
+    function throughOf(round) {
+      var out = round.matches.filter(function (m) { return m.winner; }).map(function (m) { return m.winner; });
+      if (round.bye) out.push(round.bye);
+      return out;
+    }
+    function matchRow(a, b, extraCls) {
+      var row = el('div', 'match' + (extraCls ? ' ' + extraCls : ''));
+      var na = el('span', 'n', a), nb = el('span', 'n r', b);
+      row.appendChild(na); row.appendChild(el('span', 'v', 'vs')); row.appendChild(nb);
+      return { row: row, a: na, b: nb };
+    }
 
-      players.forEach(function(name) {
-        var opt = document.createElement('div');
-        opt.className = 'pick-option';
-        opt.textContent = name;
-        opt.addEventListener('click', function() {
-          if (pickerTarget === 1) {
-            p1Name = name;
-            document.getElementById('pick-p1-name').textContent = name;
-          } else {
-            p2Name = name;
-            document.getElementById('pick-p2-name').textContent = name;
-          }
-          dropdown.classList.remove('visible');
-        });
-        dropdown.appendChild(opt);
+    // ── C1 · The draw ──
+    function showDraw() {
+      var c = document.getElementById('draw'); clear(c);
+      var card = el('div', 'hg-card drawcard shuffling');
+      card.appendChild(el('div', 'hg-card-title', 'The draw'));
+      card.appendChild(el('div', 'hg-sub', 'Random, and final. Good luck!'));
+      card.appendChild(el('div', 'lbl', roundName(0)));
+      var r0 = rounds[0], names = [];
+      r0.matches.forEach(function (m) {
+        var mr = matchRow(m.a, m.b); names.push([mr.a, m.a], [mr.b, m.b]); card.appendChild(mr.row);
       });
-      dropdown.classList.toggle('visible');
-    }
-
-    document.getElementById('btn-play-c4').addEventListener('click', startGame);
-    document.getElementById('btn-play-again').addEventListener('click', startGame);
-    document.getElementById('btn-play-again-draw').addEventListener('click', startGame);
-
-    // ── Game logic ──────────────────────────────────────────
-    function startGame() {
-      // Reset state
-      state = [];
-      for (var r = 0; r < ROWS; r++) {
-        state[r] = [];
-        for (var c = 0; c < COLS; c++) state[r][c] = 0;
+      if (r0.bye) {
+        var row = el('div', 'match bye'), n = el('span', 'n', r0.bye);
+        row.appendChild(n); row.appendChild(el('span', 'v', 'Straight to ' + nextRoundName(0)));
+        names.push([n, r0.bye]); card.appendChild(row);
       }
-      currentPlayer = 1;
-      gameOver = false;
-      hoverCol = -1;
-      showScreen('game-screen');
-      buildBoard();
-      buildColZones();
-      buildDropRow();
-      updateTurnBar();
-    }
-
-    function buildBoard() {
-      var board = document.getElementById('board');
-      while (board.firstChild) board.removeChild(board.firstChild);
-      for (var r = 0; r < ROWS; r++) {
-        for (var c = 0; c < COLS; c++) {
-          var cell = document.createElement('div');
-          cell.className = 'cell';
-          cell.id = 'cell-' + r + '-' + c;
-          board.appendChild(cell);
-        }
+      if (totalRounds > 1) {
+        card.appendChild(el('div', 'lbl', totalRounds > 2 ? 'Round 2 … Final' : 'Round 2 · Final'));
+        card.appendChild(el('div', 'muted', 'Drawn as the rounds finish'));
       }
-    }
-
-    function buildDropRow() {
-      var row = document.getElementById('drop-row');
-      while (row.firstChild) row.removeChild(row.firstChild);
-      for (var c = 0; c < COLS; c++) {
-        var arrow = document.createElement('div');
-        arrow.className = 'drop-arrow';
-        arrow.id = 'arrow-' + c;
-        arrow.textContent = '▼';
-        row.appendChild(arrow);
+      c.appendChild(card);
+      var skip = el('div', 'note', 'Tap to skip the animation'); c.appendChild(skip);
+      c.appendChild(btn('Start match 1', 'hg-btn-primary', function () { stopShuffle(); matchIdx = 0; showNext(); }));
+      // Name chips shuffle, then drop into their slots (≈ 1.5 s, tap skips).
+      var t0 = performance.now(), iv = setInterval(function () {
+        if (performance.now() - t0 > 1500) return stopShuffle();
+        names.forEach(function (p) { p[0].textContent = players[Math.floor(Math.random() * players.length)]; });
+      }, 90);
+      function stopShuffle() {
+        clearInterval(iv); card.classList.remove('shuffling');
+        names.forEach(function (p) { p[0].textContent = p[1]; });
+        skip.style.visibility = 'hidden';
       }
+      tap(card, stopShuffle);
+      screen('draw');
     }
 
-    function buildColZones() {
-      var zones = document.getElementById('col-zones');
-      while (zones.firstChild) zones.removeChild(zones.firstChild);
-      for (var c = 0; c < COLS; c++) {
-        (function(col) {
-          var zone = document.createElement('div');
-          zone.className = 'col-zone';
-          zone.addEventListener('touchstart', function(e) { e.preventDefault(); showArrow(col); }, { passive:false });
-          zone.addEventListener('touchend', function(e) { e.preventDefault(); dropPiece(col); hideArrows(); }, { passive:false });
-          zone.addEventListener('touchcancel', function() { hideArrows(); });
-          zone.addEventListener('mouseenter', function() { showArrow(col); });
-          zone.addEventListener('mouseleave', function() { hideArrows(); });
-          zone.addEventListener('click', function() { dropPiece(col); });
-          zones.appendChild(zone);
-        })(c);
-      }
+    // ── C2 · Next match ──
+    function currentMatch() { return rounds[roundIdx].matches[matchIdx]; }
+    function showNext() {
+      var m = currentMatch();
+      if (Math.random() < 0.5) { yellow = m.a; red = m.b; } else { yellow = m.b; red = m.a; }   // colours drawn per match
+      var c = document.getElementById('next'); clear(c);
+      var rName = roundName(roundIdx);
+      c.appendChild(el('div', 'hg-pill', rName === 'Final' ? 'Final' : rName + '  ·  Match ' + (matchIdx + 1) + ' of ' + rounds[roundIdx].matches.length));
+      c.appendChild(versus(yellow, red));
+      c.appendChild(el('div', 'shout', yellow + ' is yellow and starts!'));
+      c.appendChild(el('div', 'note', 'Put the phone flat between you'));
+      c.appendChild(btn('Play', 'hg-btn-primary', startMatch));
+      screen('next');
+    }
+    function versus(y, r) {
+      var row = el('div', 'vs');
+      var a = el('div', 'side'); a.appendChild(tok(Y, 'coin')); a.appendChild(HG.tag(y));
+      var b = el('div', 'side');
+      if (r === CPU) b.appendChild(el('div', 'cpu', '🤖')); else b.appendChild(tok(R, 'coin'));
+      b.appendChild(HG.tag(r));
+      row.appendChild(a); row.appendChild(el('div', 'vs-x', 'VS')); row.appendChild(b);
+      return row;
     }
 
-    function showArrow(col) {
-      hideArrows();
-      var arrow = document.getElementById('arrow-' + col);
-      if (arrow) arrow.classList.add('visible');
-    }
-    function hideArrows() {
-      for (var c = 0; c < COLS; c++) {
-        var a = document.getElementById('arrow-' + c);
-        if (a) a.classList.remove('visible');
-      }
-    }
-
-    var dropping = false; // lock input during animation
-
-    function dropPiece(col) {
-      if (gameOver || dropping) return;
-      // Find lowest empty row
-      var row = -1;
-      for (var r = ROWS - 1; r >= 0; r--) {
-        if (state[r][col] === 0) { row = r; break; }
-      }
-      if (row === -1) return; // column full
-
-      state[row][col] = currentPlayer;
-      dropping = true;
-      var animDuration = (0.08 * (row + 1) + 0.18) * 1000; // matches CSS formula
-      renderCell(row, col, true);
-
-      setTimeout(function() {
-        dropping = false;
-        var win = checkWin(row, col);
-        if (win) { highlightWin(win); showWin(); return; }
-        if (checkDraw()) { showScreen('draw-screen'); return; }
-        currentPlayer = currentPlayer === 1 ? 2 : 1;
-        updateTurnBar();
-      }, animDuration);
+    // ── C9 · Solo ──
+    function showSolo() {
+      yellow = players[0]; red = CPU;     // the player is always Yellow and starts
+      var c = document.getElementById('next'); clear(c);
+      c.appendChild(el('div', 'hg-pill', 'Solo'));
+      c.appendChild(versus(yellow, red));
+      c.appendChild(el('div', 'shout', 'You start!'));
+      c.appendChild(el('div', 'note', 'Beat the computer for up to 100 pts'));
+      c.appendChild(btn('Play', 'hg-btn-primary', startMatch));
+      screen('next');
     }
 
-    function renderCell(row, col, animate) {
-      var cell = document.getElementById('cell-' + row + '-' + col);
-      if (!cell) return;
-      var p = state[row][col];
+    // ── C3 · Match ──
+    var boardEl = document.getElementById('board'), ghostEl = document.getElementById('ghostrow'), hl = document.getElementById('colhl');
+    function startMatch() {
+      board = []; for (var r = 0; r < ROWS; r++) { board.push([0, 0, 0, 0, 0, 0, 0]); }
+      turnColor = Y; busy = false; over = false; aim = -1; aimPointer = null;
+      moves = {}; moves[yellow] = 0; moves[red] = 0;
+      Array.prototype.slice.call(boardEl.querySelectorAll('.cell')).forEach(function (n) { n.remove(); });
+      boardEl.className = 'board';
+      for (var i = 0; i < ROWS * COLS; i++) boardEl.appendChild(el('div', 'cell'));
+      clear(ghostEl); for (var c = 0; c < COLS; c++) ghostEl.appendChild(el('div', 'ghost'));
+      document.getElementById('boardnote').textContent = 'Tap anywhere in a column';
+      screen('match');
+      nextTurn();
+    }
+    function nameOf(color) { return color === Y ? yellow : red; }
+    function cellEl(r, c) { return boardEl.querySelectorAll('.cell')[r * COLS + c]; }
+    function isCpuTurn() { return solo && nameOf(turnColor) === CPU; }
 
-      while (cell.firstChild) cell.removeChild(cell.firstChild);
-      cell.className = 'cell' + (p === 1 ? ' p1' : p === 2 ? ' p2' : '');
-
-      if (p !== 0) {
-        var imgSrc = p === 1 ? 'assets/yellow.png' : 'assets/red.png';
-        var finalRot = Math.floor(Math.random() * 360);
-
-        if (animate) {
-          // ── Overlay approach: the board grid stays intact ──
-          // A free-floating img falls from above the board into the target cell.
-          var boardContainer = document.querySelector('.board-wrap > div');
-          var cellRect = cell.getBoundingClientRect();
-          var containerRect = boardContainer.getBoundingClientRect();
-
-          var cellLeft = cellRect.left - containerRect.left;
-          var cellTop  = cellRect.top  - containerRect.top;
-          var cellW    = cellRect.width;
-
-          // Coin starts just above the board container top (cellW px higher)
-          var fallFromY = -(cellTop + cellW);
-          var duration  = (0.08 * (row + 1) + 0.18);
-
-          var overlay = document.createElement('img');
-          overlay.src = imgSrc;
-          overlay.alt = '';
-          overlay.className = 'coin-overlay';
-          overlay.style.width  = cellW + 'px';
-          overlay.style.height = cellW + 'px';
-          overlay.style.left   = cellLeft + 'px';
-          overlay.style.top    = cellTop  + 'px';
-          overlay.style.setProperty('--fall-from-y', fallFromY + 'px');
-          overlay.style.setProperty('--final-rot', finalRot + 'deg');
-          overlay.style.setProperty('--fall-dur', duration + 's');
-
-          // Keep cell as an empty hole while coin is mid-air
-          cell.className = 'cell';
-          boardContainer.appendChild(overlay);
-
-          overlay.addEventListener('animationend', function() {
-            boardContainer.removeChild(overlay);
-            // Snap actual coin into the cell
-            cell.className = 'cell' + (p === 1 ? ' p1' : p === 2 ? ' p2' : '');
-            var img = document.createElement('img');
-            img.src = imgSrc;
-            img.alt = '';
-            img.style.transform = 'rotate(' + finalRot + 'deg)';
-            cell.appendChild(img);
-          }, { once: true });
-
-        } else {
-          var img = document.createElement('img');
-          img.src = imgSrc;
-          img.alt = '';
-          img.style.transform = 'rotate(' + finalRot + 'deg)';
-          cell.appendChild(img);
-        }
-      }
+    function renderBanner(title, sub) {
+      var who = nameOf(turnColor);
+      document.getElementById('who').textContent = who;
+      var t = document.getElementById('turnTitle'); clear(t);
+      t.appendChild(document.createTextNode(title));
+      document.getElementById('turnSub').textContent = sub;
+      var ring = document.getElementById('ring'); clear(ring);
+      if (who === CPU) ring.appendChild(el('span', 'cpuface', '🤖')); else ring.appendChild(tok(turnColor));
+      var meta = document.getElementById('meta'); clear(meta);
+      meta.appendChild(el('b', null, solo ? 'Solo' : roundName(roundIdx)));
+      meta.appendChild(el('span', null, 'vs ' + nameOf(turnColor === Y ? R : Y)));
     }
 
-    function renderBoard() {
-      for (var r = 0; r < ROWS; r++)
-        for (var c = 0; c < COLS; c++)
-          renderCell(r, c);
+    function nextTurn() {
+      clearGhost();
+      if (isCpuTurn()) { renderBanner('Thinking…', 'Wait for your turn'); cpuThink(); }
+      else renderBanner('Your turn →', 'Tap a column');
     }
 
-    function updateTurnBar() {
-      var isP1 = currentPlayer === 1;
-      document.getElementById('turn-token').src = isP1 ? 'assets/yellow.png' : 'assets/red.png';
-      document.getElementById('turn-name').textContent = isP1 ? p1Name : p2Name;
+    // ── C3b · Aiming: ghost on touch-down, slide to change column, release drops, release off the board cancels ──
+    var box = document.getElementById('boardbox');
+    function colAt(x) {
+      var r = boardEl.getBoundingClientRect();
+      if (x < r.left || x > r.right) return -1;
+      return Math.max(0, Math.min(COLS - 1, Math.floor((x - r.left - 13) / ((r.width - 26) / COLS))));
+    }
+    function onBoard(x, y) {
+      var r = boardEl.getBoundingClientRect(), g = ghostEl.getBoundingClientRect();
+      return x >= r.left && x <= r.right && y >= g.top && y <= r.bottom;
+    }
+    function canPlay() { return !busy && !over && !isCpuTurn() && !HG.shell.isPaused(); }
+    function showGhost(c, color) {
+      clearGhost();
+      if (c < 0) return;
+      var g = ghostEl.children[c];
+      if (topRow(c) < 0) { g.classList.add('full'); var x = el('img'); x.src = '../../assets/ui/icon-close.svg'; x.alt = 'Full'; g.appendChild(x); }
+      else g.appendChild(tok(color));
+      var cell = cellEl(0, c), br = boardEl.getBoundingClientRect(), cr = cell.getBoundingClientRect();
+      hl.style.left = (cr.left - br.left - 4) + 'px'; hl.style.width = (cr.width + 8) + 'px'; hl.style.display = 'block';
+    }
+    function clearGhost() {
+      for (var i = 0; i < ghostEl.children.length; i++) { clear(ghostEl.children[i]); ghostEl.children[i].className = 'ghost'; }
+      hl.style.display = 'none';
     }
 
-    // ── Win detection ──────────────────────────────────────
-    function checkWin(row, col) {
-      var p = state[row][col];
-      var dirs = [[0,1],[1,0],[1,1],[1,-1]];
-      for (var d = 0; d < dirs.length; d++) {
-        var dr = dirs[d][0], dc = dirs[d][1];
-        var cells = [[row, col]];
-        for (var step = 1; step < 4; step++) {
-          var r2 = row + dr*step, c2 = col + dc*step;
-          if (r2<0||r2>=ROWS||c2<0||c2>=COLS||state[r2][c2]!==p) break;
-          cells.push([r2, c2]);
-        }
-        for (var step = 1; step < 4; step++) {
-          var r2 = row - dr*step, c2 = col - dc*step;
-          if (r2<0||r2>=ROWS||c2<0||c2>=COLS||state[r2][c2]!==p) break;
-          cells.push([r2, c2]);
-        }
+    box.addEventListener('pointerdown', function (e) {
+      if (!canPlay() || aimPointer !== null) return;
+      if (!onBoard(e.clientX, e.clientY)) return;
+      aimPointer = e.pointerId;
+      try { box.setPointerCapture(e.pointerId); } catch (x) {}
+      aim = colAt(e.clientX); showGhost(aim, turnColor);
+      document.getElementById('turnSub').textContent = 'Release to drop';
+    });
+    box.addEventListener('pointermove', function (e) {
+      if (e.pointerId !== aimPointer) return;
+      var c = onBoard(e.clientX, e.clientY) ? colAt(e.clientX) : -1;
+      if (c !== aim) { aim = c; showGhost(aim, turnColor); }
+    });
+    function release(e, cancel) {
+      if (e.pointerId !== aimPointer) return;
+      aimPointer = null;
+      var c = (!cancel && onBoard(e.clientX, e.clientY)) ? colAt(e.clientX) : -1;
+      clearGhost();
+      if (!canPlay()) return;
+      document.getElementById('turnSub').textContent = 'Tap a column';
+      if (c < 0) return;                         // released off the board = cancel
+      if (topRow(c) < 0) return refuseFull(c);
+      drop(c);
+    }
+    box.addEventListener('pointerup', function (e) { release(e, false); });
+    box.addEventListener('pointercancel', function (e) { release(e, true); });
+
+    function refuseFull(c) {
+      showGhost(c, turnColor);
+      HG.feedback('fail', boardEl);
+      setTimeout(clearGhost, 500);             // same player keeps the turn
+    }
+
+    function topRow(c) { for (var r = ROWS - 1; r >= 0; r--) if (!board[r][c]) return r; return -1; }
+
+    function drop(c) {
+      var r = topRow(c); if (r < 0) return;
+      busy = true; anyDrop = true;
+      board[r][c] = turnColor; moves[nameOf(turnColor)]++;
+      var cell = cellEl(r, c), img = tok(turnColor, 'falling');
+      var h = cell.getBoundingClientRect().height + 5;
+      img.style.setProperty('--from', (-(r + 1) * h - 10) + 'px');
+      img.style.setProperty('--dur', '300ms');                            // drop ≈ 300 ms, input locked
+      cell.appendChild(img);
+      HG.play('drop');
+      setTimeout(function () {
+        busy = false;
+        var line = winLine(r, c);
+        if (line) return fourInARow(line);
+        if (board[0].every(function (v) { return v; })) return drawGame();
+        turnColor = turnColor === Y ? R : Y;
+        nextTurn();
+      }, 320);
+    }
+
+    function winLine(r, c) {
+      var p = board[r][c], dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (var d = 0; d < 4; d++) {
+        var cells = [[r, c]];
+        for (var s = -1; s <= 1; s += 2)
+          for (var k = 1; k < 4; k++) {
+            var rr = r + dirs[d][0] * k * s, cc = c + dirs[d][1] * k * s;
+            if (rr < 0 || rr >= ROWS || cc < 0 || cc >= COLS || board[rr][cc] !== p) break;
+            cells.push([rr, cc]);
+          }
         if (cells.length >= 4) return cells;
       }
       return null;
     }
 
-    function checkDraw() {
-      for (var c = 0; c < COLS; c++)
-        if (state[0][c] === 0) return false;
-      return true;
+    // ── C4 · Four in a row (≈ 1.2 s, tap skips) ──
+    function fourInARow(line) {
+      over = true;
+      line.forEach(function (p) { cellEl(p[0], p[1]).classList.add('win'); });
+      boardEl.classList.add('dim');
+      var w = nameOf(turnColor);
+      renderBanner(w === CPU ? 'Computer wins' : 'Connect 4!', 'Tap to continue');
+      document.getElementById('boardnote').textContent = '';
+      HG.play('success');
+      var done = false;
+      function go() { if (done) return; done = true; box.removeEventListener('pointerup', go); matchOver(w, w === yellow ? red : yellow); }
+      setTimeout(function () { box.addEventListener('pointerup', go); }, 200);
+      setTimeout(go, 1200);
     }
 
-    function highlightWin(cells) {
-      cells.forEach(function(pos) {
-        var cell = document.getElementById('cell-' + pos[0] + '-' + pos[1]);
-        if (cell) cell.classList.add('win');
+    // ── C8 · Draw → replay, colours swapped (the other player starts) ──
+    function drawGame() {
+      over = true;
+      boardEl.classList.add('drawn');
+      var c = document.getElementById('won'); clear(c);
+      var tmp = yellow; yellow = red; red = tmp;
+      c.appendChild(el('div', 'hg-title shadow', "It's a draw!"));
+      c.appendChild(el('div', 'note', 'Play it again. Colours swap:'));
+      c.appendChild(versus(yellow, red));
+      c.appendChild(el('div', 'shout', (yellow === CPU ? 'The computer' : yellow) + ' is yellow and starts!'));
+      c.appendChild(btn('Replay', 'hg-btn-primary', startMatch));
+      setTimeout(function () { screen('won'); }, 900);
+    }
+
+    // ── Computer (one level, beatable): win → block → avoid giving a win above → centre; ~20 % random ──
+    function cpuThink() {
+      var me = turnColor, col = cpuMove(me), dur = 600 + Math.random() * 300, t0 = performance.now(), last = -1;
+      function frame() {
+        if (HG.shell.isPaused()) { cpuTimer = requestAnimationFrame(frame); t0 += 16; return; }
+        var t = performance.now() - t0;
+        if (t >= dur) { showGhost(col, me); setTimeout(function () { clearGhost(); drop(col); }, 150); return; }
+        var c = Math.floor((t / 120)) % COLS; if (c !== last) { last = c; showGhost(c, me); }
+        cpuTimer = requestAnimationFrame(frame);
+      }
+      cpuTimer = requestAnimationFrame(frame);
+    }
+    function legal() { var o = []; for (var c = 0; c < COLS; c++) if (topRow(c) >= 0) o.push(c); return o; }
+    function winsAt(c, color) {
+      var r = topRow(c); if (r < 0) return false;
+      board[r][c] = color; var w = !!winLine(r, c); board[r][c] = 0; return w;
+    }
+    function cpuMove(me) {
+      var opp = me === Y ? R : Y, L = legal(), i;
+      for (i = 0; i < L.length; i++) if (winsAt(L[i], me)) return L[i];
+      for (i = 0; i < L.length; i++) if (winsAt(L[i], opp)) return L[i];
+      var safe = L.filter(function (c) {
+        var r = topRow(c); board[r][c] = me;
+        var bad = r > 0 && (function () { board[r - 1][c] = opp; var w = !!winLine(r - 1, c); board[r - 1][c] = 0; return w; })();
+        board[r][c] = 0; return !bad;
       });
+      var pool = safe.length ? safe : L;
+      if (Math.random() < 0.2) return pool[Math.floor(Math.random() * pool.length)];
+      var pref = [3, 2, 4, 1, 5, 0, 6];
+      for (i = 0; i < pref.length; i++) if (pool.indexOf(pref[i]) !== -1) return pref[i];
+      return pool[0];
     }
 
-    function showWin() {
-      gameOver = true;
-      var isP1 = currentPlayer === 1;
-      var name = isP1 ? p1Name : p2Name;
-      document.getElementById('win-name').textContent = name + ' wins!';
-      document.getElementById('win-token').src = isP1 ? 'assets/yellow.png' : 'assets/red.png';
-      setTimeout(function() { showScreen('win-screen'); }, 800);
+    // ── Points ──
+    var MIN_M = 4, MAX_M = 21;
+    function fast(m) { return Math.max(0, Math.min(1, (MAX_M - m) / (MAX_M - MIN_M))); }
+    function heldOut(m) { return Math.max(0, Math.min(1, (m - MIN_M) / (MAX_M - MIN_M))); }
+    function placement(out) { return out > totalRounds ? 80 : 20 + 60 * (out - 1) / totalRounds; }
+    function pointsOf(n) {
+      var s = stats[n];
+      if (s.out > totalRounds) {
+        var avg = s.wonMoves.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, s.wonMoves.length);
+        return 80 + 20 * fast(avg);
+      }
+      return placement(s.out) + 15 * heldOut(s.lastMoves);
     }
 
-    // ── Screens ────────────────────────────────────────────
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-      document.getElementById(id).classList.add('active');
+    // ── C5 · Match won ──
+    function matchOver(w, l) {
+      stats[w].wonMoves.push(moves[w]); stats[w].lastMoves = moves[w];
+      stats[l].lastMoves = moves[l];
+      if (solo) return soloResult(w === players[0]);
+      var m = currentMatch(); m.winner = w; m.loser = l;
+      stats[l].out = roundIdx + 1;
+      if (roundIdx === totalRounds - 1) { stats[w].out = totalRounds + 1; return showChampion(w); }
+      var c = document.getElementById('won'); clear(c);
+      HG.confetti();
+      c.appendChild(el('div', 'hg-title shadow', w + ' wins!'));
+      var card = el('div', 'wincard');
+      card.appendChild(tok(w === yellow ? Y : R, 'coin'));
+      card.appendChild(el('div', 'small', 'Goes through to'));
+      card.appendChild(el('div', 'big', nextRoundName(roundIdx)));
+      c.appendChild(card);
+      c.appendChild(el('div', 'note', l + ' is out. Well played!'));
+      c.appendChild(btn('See the bracket', 'hg-btn-primary', advance));
+      screen('won');
+    }
+    function advance() {
+      matchIdx++;
+      if (matchIdx >= rounds[roundIdx].matches.length) {
+        makeRound(throughOf(rounds[roundIdx]));     // later rounds are drawn as the rounds finish
+        roundIdx++; matchIdx = 0;
+      }
+      showBracket();
     }
 
-    function goBack() {
-      window.location.href = 'index.html';
+    // ── C6 · Bracket ──
+    function showBracket() {
+      var c = document.getElementById('bracket'); clear(c);
+      c.appendChild(el('div', 'hg-titlebar', 'Bracket'));
+      var list = el('div', 'bracket'); c.appendChild(list);
+      rounds.forEach(function (rd, ri) {
+        list.appendChild(el('div', 'lbl', roundName(ri)));
+        rd.matches.forEach(function (m, mi) {
+          if (m.winner) {
+            var row = el('div', 'match');
+            row.appendChild(el('span', 'check', '✓'));
+            var n = el('span', 'n', m.winner); n.style.flex = '0 1 auto'; row.appendChild(n);
+            row.appendChild(el('span', 'beat', 'beat ' + m.loser));
+            list.appendChild(row);
+          } else {
+            var isNext = ri === roundIdx && mi === matchIdx;
+            var mr = matchRow(m.a, m.b, isNext ? 'next' : '');
+            if (isNext) { mr.b.classList.remove('r'); mr.b.style.textAlign = 'left'; mr.row.appendChild(el('span', 'next-tag', 'NEXT')); }
+            list.appendChild(mr.row);
+          }
+        });
+        if (rd.bye) {
+          var b = el('div', 'match bye'); b.appendChild(el('span', 'n', rd.bye));
+          b.appendChild(el('span', 'v', 'Straight to ' + nextRoundName(ri)));
+          list.appendChild(b);
+        }
+      });
+      for (var ri = rounds.length; ri < totalRounds; ri++) {
+        list.appendChild(el('div', 'lbl', roundName(ri)));
+        list.appendChild(el('div', 'info', ri === rounds.length ? 'Through: ' + (throughOf(rounds[ri - 1]).join(', ') || '—') + ' + winners to come' : 'To be played'));
+      }
+      c.appendChild(btn('Next match', 'hg-btn-primary', showNext));
+      screen('bracket');
     }
 
-    // ── Boot ───────────────────────────────────────────────
-    init();
+    // ── C7 · Champion (scores committed here, once) ──
+    function showChampion(w) {
+      var pts = {};
+      players.forEach(function (n) { pts[n] = pointsOf(n); });
+      if (!committed) { HG.commitRound('connect4', pts); committed = true; }
+      var c = document.getElementById('champ'); clear(c);
+      HG.confetti();
+      c.appendChild(el('div', 'hg-title shadow', 'Champion!'));
+      var list = el('div', 'hg-ranks'); c.appendChild(list);
+      HG.rank(drawOrder, function (a, b) {        // round reached, then points; ties in play order
+        return (stats[b].out - stats[a].out) || (pts[b] - pts[a]);
+      }).forEach(function (r) {
+        var n = r.item, s = stats[n];
+        var stage = s.out > totalRounds ? 'Champion' : s.out === totalRounds ? 'Final' : 'Round ' + s.out;
+        list.appendChild(HG.rankRow(r.place, n, [[null, stage], ['b', String(Math.round(pts[n]))], ['w', 'pts']]));
+      });
+      c.appendChild(btn('Leaderboard', 'hg-btn-primary', showLb));
+      c.appendChild(btn('Play again', 'hg-btn-ghost', start));
+      screen('champ');
+    }
+
+    // ── C11 · Solo result ──
+    function soloResult(win) {
+      var me = players[0], s = stats[me];
+      var p = win ? 80 + 20 * fast(s.lastMoves) : 20 + 15 * heldOut(s.lastMoves);
+      if (!committed) { var o = {}; o[me] = p; HG.commitRound('connect4', o); committed = true; }
+      var c = document.getElementById('won'); clear(c);
+      if (win) HG.confetti();
+      c.appendChild(el('div', 'hg-title shadow', win ? 'You win!' : 'Computer wins!'));
+      var card = el('div', 'wincard');
+      card.appendChild(tok(win ? (me === yellow ? Y : R) : (me === yellow ? R : Y), 'coin'));
+      card.appendChild(el('div', 'big', '+' + Math.round(p) + ' pts'));
+      c.appendChild(card);
+      c.appendChild(el('div', 'note', win ? me + ' beat the computer' : 'Well played, ' + me + '! Try again?'));
+      c.appendChild(btn('Rematch', 'hg-btn-primary', start));
+      c.appendChild(btn('Leaderboard', 'hg-btn-ghost', showLb));
+      screen('won');
+    }
+
+    function showLb() { screen('lb'); HG.shell.leaderboard(document.getElementById('lb'), start); }
+
+    // ── Shell ──
+    var soloAtLoad = HG.getPlayers().length <= 1;
+    HG.shell.init({
+      game: 'connect4',
+      headerLogo: 'assets/header-logo.svg',
+      logo: 'assets/icon.webp',
+      tip: 'Block your opponent before you go for your own four!',
+      howTo: {
+        lines: soloAtLoad
+          ? ['Take turns dropping a token', 'Tap a column to drop it', 'Line up 4: across, up or diagonal', 'Beat the computer for up to 100 pts', 'A draw? Play it again']
+          : ['Take turns dropping a token', 'Tap a column to drop it', 'Line up 4: across, up or diagonal', 'Win and you go through', 'Quick wins score extra', 'A draw? Play it again'],
+        cta: "Let's go"
+      },
+      currentPlayer: function () { return document.getElementById('match').classList.contains('active') && !isCpuTurn() ? nameOf(turnColor) : null; },
+      // The whole tournament is void on quit. After C7 / C11 the scores are saved: ← goes straight home.
+      hasProgress: function () { return anyDrop && !committed; },
+      onPause: function () { aimPointer = null; clearGhost(); },
+      onResume: function () {}
+    });
+
+    HG.shell.begin(['assets/header-logo.svg', IMG[1], IMG[2]], start);
   </script>
 </body>
 </html>
