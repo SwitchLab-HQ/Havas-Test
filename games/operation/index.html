@@ -105,7 +105,7 @@
       EXIT_R: 70,                // bone out when its centre is this close to the exit (art px)
       GRIP_SLOP: 12,             // extra CSS px around the finger zone of the tool
       STEP: 8,                   // wall test every 8 art px along a move (no tunnelling through a wall)
-      GRACE_MS: 500,             // wall debounce
+      SNAP_BACK: 48,             // on a wall hit the bone jumps back at least this far along its trail (art px)
       CTA_DELAY: 800
     };
     var el = HG.el, clear = HG.clear, tap = HG.onTap;
@@ -114,7 +114,8 @@
     var players = [], order = [], turn = 0, results = [], pathIdx = -1, committed = false;
     // ── Turn state ──
     var phase = 'idle';   // idle | ready (O1, waiting for pick-up) | run (O2) | over
-    var touches = 0, inWall = false, graceUntil = 0, maxProg = 0, picked = false, turnStarted = false;
+    var touches = 0, maxProg = 0, picked = false, turnStarted = false;
+    var trail = [];        // recent wall-free bone spots, newest last: where a wall hit sends the bone back
     var trackId = null, bone = { x: 0, y: 0 }, offX = 0, offY = 0;
     var clock = HG.Clock(), hudTimer = null;
     var timer = HG.timerRing(); document.getElementById('timerslot').appendChild(timer.el);
@@ -242,13 +243,14 @@
     // ── O1 · Pick up the tool ──
     function startTurn() {
       turnStarted = true;
-      phase = 'ready'; touches = 0; inWall = false; graceUntil = 0; maxProg = 0; trackId = null; picked = false;
+      phase = 'ready'; touches = 0; maxProg = 0; trackId = null; picked = false;
       clock = HG.Clock();
       document.getElementById('who').textContent = order[turn];
       document.getElementById('pathname').textContent = PATHS[pathIdx].name;
       screen('play');
       layout();
       bone = { x: PATHS[pathIdx].start[0], y: PATHS[pathIdx].start[1] };
+      trail = [bone];
       drawTool(); boardEl.classList.add('ready');
       hud();
     }
@@ -277,7 +279,6 @@
         if (clock.ms() === 0 && !clock.running()) clock.start(); else clock.resume();   // timer starts on pick-up
         clearInterval(hudTimer); hudTimer = setInterval(hud, 100);
         HG.play('tick');
-        checkWalls();
         return;
       }
     }, { passive: false });
@@ -293,7 +294,8 @@
         var n = Math.max(1, Math.ceil(Math.hypot(to.x - bone.x, to.y - bone.y) / CFG.STEP)), from = bone;
         for (var s = 1; s <= n; s++) {
           bone = { x: from.x + (to.x - from.x) * s / n, y: from.y + (to.y - from.y) * s / n };
-          checkWalls();
+          if (boneHitsWall(bone.x, bone.y)) return wallTouch();
+          safeSpot();
           var ex = PATHS[pathIdx].exit;
           if (Math.hypot(bone.x - ex[0], bone.y - ex[1]) < CFG.EXIT_R) { drawTool(); return boneOut(); }
         }
@@ -301,12 +303,11 @@
       }
     }, { passive: false });
 
-    function checkWalls() {
-      var hit = boneHitsWall(bone.x, bone.y);
-      if (hit && !inWall && performance.now() >= graceUntil) wallTouch();
-      inWall = hit;
+    // Bone is clear of the walls here: remember the spot and count the progress.
+    function safeSpot() {
+      trail.push(bone); if (trail.length > 40) trail.shift();
       var d = distAt(bone.x, bone.y);
-      if (!hit && d >= 0) maxProg = Math.max(maxProg, Math.min(1, 1 - d / startDist));
+      if (d >= 0) maxProg = Math.max(maxProg, Math.min(1, 1 - d / startDist));
     }
 
     function onEnd(e) {
@@ -319,13 +320,18 @@
     stage.addEventListener('touchend', onEnd, { passive: false });
     stage.addEventListener('touchcancel', onEnd, { passive: false });
 
-    // ── O6 · BZZT! ──
+    // ── O6 · BZZT! Walls can't be crossed: the tweezers drop back along the trail and must be picked up again.
+    //    The timer keeps running, so every touch costs time as well as precision points. ──
     var bz = document.getElementById('bzzt'), bzT = null;
     function wallTouch() {
       touches++;
-      graceUntil = performance.now() + CFG.GRACE_MS;
       HG.feedback('buzz', stage);
       bz.classList.add('on'); clearTimeout(bzT); bzT = setTimeout(function () { bz.classList.remove('on'); }, 450);
+      var hitAt = bone, i = trail.length - 1;
+      while (i > 0 && Math.hypot(trail[i].x - hitAt.x, trail[i].y - hitAt.y) < CFG.SNAP_BACK) i--;
+      bone = trail[i]; trail.length = i + 1;
+      drawTool();
+      trackId = null; phase = 'ready'; boardEl.classList.add('ready');
       hud();
     }
 
@@ -411,14 +417,14 @@
       logo: '../../assets/ui/logo-operation.webp',
       tip: 'The timer only starts when you touch the tweezers. Take your time to aim!',
       howTo: {
-        lines: ['Touch the tweezers to start', 'Slide along the path', "Don't touch the walls!", 'Carry the bone out', "Don't lift your finger!", 'Bone out + speed score points'],
+        lines: ['Touch the tweezers to start', 'Slide along the path', "Touch a wall: BZZT! The tweezers jump back", 'Carry the bone out', "Don't lift your finger!", 'Bone out + speed score points'],
         cta: 'Got it'
       },
       currentPlayer: function () { return order[turn]; },
       hasProgress: function () { return !committed && (turn > 0 || turnStarted || results.length > 0); },
       onPause: function () {
         // The tool stays where it is; the run and the timer carry on when the player picks it up again.
-        if (phase === 'run') { clock.pause(); clearInterval(hudTimer); trackId = null; phase = 'ready'; inWall = false; boardEl.classList.add('ready'); }
+        if (phase === 'run') { clock.pause(); clearInterval(hudTimer); trackId = null; phase = 'ready'; boardEl.classList.add('ready'); }
       },
       onResume: function () {}
     });

@@ -234,11 +234,44 @@
       return { x: c(p0.x, p1.x, p2.x, p3.x), y: c(p0.y, p1.y, p2.y, p3.y) };
     }
 
+    // Sound: synthesised plastic clacks (no files). Each die clacks when it hits the table.
+    let actx = null, noise = null;
+    function audio() {
+      if (!actx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        actx = new AC();
+        noise = actx.createBuffer(1, Math.round(actx.sampleRate * 0.12), actx.sampleRate);
+        const ch = noise.getChannelData(0);
+        for (let k = 0; k < ch.length; k++) ch[k] = Math.random() * 2 - 1;
+      }
+      if (actx.state === 'suspended') actx.resume();
+      return actx;
+    }
+    // vol 0..1; low = true for the heavier landing knock
+    function clack(vol, low) {
+      const ctx = actx; if (!ctx || vol < 0.02) return;
+      const t = ctx.currentTime, len = low ? 0.09 : 0.05;
+      const src = ctx.createBufferSource(); src.buffer = noise;
+      const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
+      bp.frequency.value = (low ? 1400 : 2600) * rand(0.8, 1.25); bp.Q.value = low ? 2 : 4;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.9 * vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+      src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+      src.start(t, rand(0, 0.05)); src.stop(t + len + 0.01);
+      const o = ctx.createOscillator(), og = ctx.createGain();      // short tonal "tok"
+      o.type = 'triangle'; o.frequency.value = (low ? 520 : 1700) * rand(0.85, 1.2);
+      og.gain.setValueAtTime(0.35 * vol, t); og.gain.exponentialRampToValueAtTime(0.001, t + len * 0.8);
+      o.connect(og); og.connect(ctx.destination);
+      o.start(t); o.stop(t + len);
+    }
+
     let rolling = false;
 
     function roll() {
       if (rolling) return;
       rolling = true;
+      audio();
       document.body.classList.add('rolling');
       result.textContent = '';
 
@@ -260,12 +293,14 @@
           rotTo: endRot + 360 * Math.round((startRot + spin - endRot) / 360),
           dur: reduceMotion ? 400 + idx * 250 : (idx ? first + rand(450, 650) : first),
           bounces: Math.round(rand(4, 6)),
-          nextFace: 0, done: false,
+          nextFace: 0, hits: 0, done: false,
         };
       });
 
       // biggest hop that still fits a die's half on small screens
       const maxScale = Math.max(THUD, Math.min(1 + HOP, (Math.min(W / 2, H) / 2 - PAD) / (S * Math.SQRT1_2)));
+      clack(0.8);                                     // dice leave the hand
+      setTimeout(() => clack(0.6), 45);
       const t0 = performance.now();
       function frame(now) {
         const t = Math.max(0, now - t0);   // rAF time can be a few ms before the tap's performance.now()
@@ -289,6 +324,8 @@
             const speed = moved * 16.7 / Math.max(dt, 8);
             d.blur = speed < 3 ? 0 : Math.min(BLUR_MAX, speed * 0.14);
           }
+          const hit = Math.floor(u * p.bounces);            // die touches the table between hops
+          if (hit > p.hits) { p.hits = hit; clack(Math.pow(1 - u, 0.8)); }
           if (t >= p.nextFace && u < 0.9) {               // swap faces, slowing down
             let n; do { n = face(); } while (n === d.face);
             setFace(d, n);
@@ -300,6 +337,7 @@
             d.scale = 1; d.blur = 0;
             setFace(d, p.final);
             d.land.classList.remove('thud'); void d.land.offsetWidth; d.land.classList.add('thud');
+            clack(0.7, true);
             if (navigator.vibrate) navigator.vibrate(25);
           } else active++;
           render(d);

@@ -249,8 +249,9 @@ body.hg-game .hg-howto { background-color: inherit; background-image: inherit; b
 
 /* ── G2 Up next: white card, current player tag, queue fading out ── */
 .hg-upnext { width: 100%; max-width: 330px; background: #fff; border-radius: 32px; padding: 26px 14px 22px; display: flex; flex-direction: column; align-items: stretch; gap: 8px; position: relative; }
-.hg-upnext-label { font-family: var(--f-display); font-weight: 900; font-size: 36px; line-height: 1; color: var(--dark-blue); padding: 0 6px 6px; text-transform: uppercase; }
-.hg-upnext .hg-tag.lg { margin: 0 -24px 10px; border-radius: 40px; }
+.hg-upnext-label { font-family: var(--f-display); font-weight: 900; font-size: 36px; line-height: 1; color: var(--dark-blue); padding: 0 10px 6px; text-align: left; text-transform: uppercase; }
+/* current player: flush with the card's left edge, runs to (and just past) the right edge */
+.hg-upnext .hg-tag.lg { margin: 0 -16px 10px -14px; max-width: none; border-radius: 40px; }
 .hg-queue { display: flex; flex-direction: column; gap: 6px; }
 .hg-queue-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 14px; border-radius: 16px; background: var(--dark-blue); color: #fff; }
 .hg-queue-row b { font-family: var(--f-display); font-weight: 900; font-size: 20px; }
