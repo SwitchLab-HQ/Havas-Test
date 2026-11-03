@@ -95,11 +95,7 @@
     .card.tap .card-name::after { content:'Tap to reveal'; font-family:var(--f-body); font-weight:400; font-size:10px; color:#fff; }
 
     /* K7 / K12 results */
-    .infobar { width:100%; max-width:352px; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:12px 18px; border-radius:30px; background:var(--light-blue); color:var(--dark-blue); }
-    .infobar b { font-family:var(--f-display); font-weight:900; font-size:14px; text-transform:uppercase; white-space:nowrap; }
-    .infobar span { font-family:var(--f-body); font-size:12px; text-align:right; }
-    .infobar.bonus { background:var(--green); }
-    .infobar.bonus span { font-family:var(--f-display); font-weight:900; font-size:18px; }
+    .bonuspill { font-family:var(--f-display); font-weight:900; font-size:14px; color:#fff; background:var(--bright-blue); padding:5px 14px; border-radius:16px; margin-top:-10px; }
   </style>
 </head>
 <body>
@@ -141,7 +137,7 @@
     var CFG = { TIME_MS: 35000, PAR_MS: 8000, SLOW_MS: 35000, LOCK_MS: 2500 };   // par / slow: placeholders until playtests
 
     // ── Content: the 6 suspects of the Hasbro Cluedo toolkit, 9 rooms, 6 weapons ──
-    // Art: 2 puzzles per suspect, 3 per room, 3 per weapon, 1080 × 1080, e.g. assets/puzzles/cluedo-weapon-rope-02.png.
+    // Art: 2 puzzles per suspect, 3 per room, 3 per weapon, square (800 × 800 delivered), e.g. assets/puzzles/cluedo-weapon-rope-02.webp.
     // Until the AD delivers them: placeholder scenes (assets/scenes/scene-NN.png), else a picture drawn in code.
     var POOL = {
       who: { n: 2, label: 'Culprit', the: 'the culprit', items: [
@@ -170,23 +166,6 @@
         { id: 'spanner', name: 'Spanner', col: '#2874a6', art: '🔧' } ] }
     };
     var KIND_FILE = { who: 'suspect', where: 'room', what: 'weapon' };
-    // Order: With what → Where → Who, then again. Who comes last so that at 8 players Who gets 2 turns, the others 3.
-    var SEQ = ['what', 'where', 'who', 'what', 'where', 'who', 'what', 'where'];
-
-    // ── Case state ──
-    var players = [], order = [], caseItems = {}, caseNo = 0, art = {}, turns = [], ti = 0;
-    var found = { who: false, where: false, what: false }, solves = [], committed = false, wakeLock = null;
-    // ── Turn state ──
-    var slots = [], clock = HG.Clock(), timer = null, inTurn = false, sel = null, drag = null;
-
-    function screen(id) {
-      document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
-      document.getElementById(id).classList.add('active');
-    }
-    function btn(text, cls, fn) { var b = el('button', 'hg-btn ' + cls, text); tap(b, fn); return b; }
-    function puzzlesPerPlayer() { var n = players.length; return n === 1 ? 3 : n === 2 ? 2 : 1; }
-    function withThe(kind, item) { return kind === 'who' ? item.name : 'the ' + item.name; }
-
     // ── Placeholder art: a busy, non-flat picture per subject and framing ──
     function drawArt(kind, item, v) {
       var S = 720, c = document.createElement('canvas'); c.width = c.height = S;
@@ -233,7 +212,7 @@
       return c.toDataURL('image/jpeg', 0.85);
     }
     function artUrl(kind, item, v) {
-      return 'assets/puzzles/cluedo-' + KIND_FILE[kind] + '-' + item.id + '-0' + v + '.png';
+      return 'assets/puzzles/cluedo-' + KIND_FILE[kind] + '-' + item.id + '-0' + v + '.webp';
     }
     // Square crop (the puzzle is 3 × 3). Portrait / landscape art is cut top / middle / bottom
     // by framing v, so one picture already gives 2–3 different puzzles.
@@ -269,16 +248,22 @@
         });
         // Spread the scenes over the case's clues: each clue gets its own scene while there are enough.
         var pool = HG.shuffle(scenes), sceneOf = { what: pool[0], where: pool[1 % (pool.length || 1)], who: pool[2 % (pool.length || 1)] };
-        var left = jobs.length;
+        var left = jobs.length, missing = [];
         jobs.forEach(function (j) {
           var k = j[0], v = j[1], item = caseItems[k], img = new Image();
-          img.onload = function () { art[k + v] = squareCrop(img, 1, 1); if (--left === 0) done(); };
-          img.onerror = function () {
-            art[k + v] = pool.length ? squareCrop(sceneOf[k], v, POOL[k].n) : drawArt(k, item, v);
-            if (--left === 0) done();
-          };
+          img.onload = function () { art[k + v] = squareCrop(img, 1, 1); if (--left === 0) fill(); };
+          img.onerror = function () { missing.push(j); if (--left === 0) fill(); };
           img.src = artUrl(k, item, v);
         });
+        // A framing not delivered yet reuses another final picture of the same clue, then a scene, then a drawing.
+        function fill() {
+          missing.forEach(function (j) {
+            var k = j[0], v = j[1], own = null;
+            for (var w = 1; w <= POOL[k].n; w++) if (art[k + w] && !own) own = art[k + w];
+            art[k + v] = own || (pool.length ? squareCrop(sceneOf[k], v, POOL[k].n) : drawArt(k, caseItems[k], v));
+          });
+          done();
+        }
       });
     }
     // Order: With what → Where → Who, then again. Who comes last so that at 8 players Who gets 2 turns, the others 3.
@@ -530,7 +515,7 @@
     // ── K5 · Locking in the answers (≈ 2.5 s, tap skips) ──
     function cards(revealUnsolved) {
       var row = el('div', 'cards');
-      [['who', 'Who'], ['where', 'Where'], ['what', 'With what']].forEach(function (p) {
+      [['what', 'With what'], ['where', 'Where'], ['who', 'Who']].forEach(function (p) {
         var k = p[0], item = caseItems[k], card = el('div', 'card');
         card.appendChild(el('div', 'card-lbl', p[1]));
         var inner = el('div', 'card-in');
@@ -577,38 +562,46 @@
           (found.what ? 'with the ' + x + '.' : 'with… ?');
       return w + ', in the ' + r + ', with the ' + x + '.';
     }
+    // K6 / K7 / K12 (Design UI - 02): THE VERDICT + CASE SOLVED / CASE UNSOLVED bar, the 3 cards, the sentence,
+    // SEE RESULTS → K8 Round results → NEXT → G3 Leaderboard.
+    function verdictHead(c, solved) {
+      c.appendChild(el('div', 'shout', 'The verdict'));
+      c.appendChild(el('div', 'hg-titlebar sm', solved ? 'Case solved' : 'Case unsolved'));
+      if (solved) c.appendChild(el('div', 'bonuspill', '+20pts Bonus'));
+    }
     function showVerdict() {
       var c = document.getElementById('verdict'); clear(c);
-      c.appendChild(el('div', 'hg-titlebar', 'The verdict'));
-      c.appendChild(el('div', 'lead', sentence(false)));
+      verdictHead(c, true);
       var row = cards(false); c.appendChild(row);
       Array.prototype.forEach.call(row.children, function (card) { card.classList.add('up'); });
+      c.appendChild(el('div', 'lead', sentence(false)));
       c.appendChild(btn('See results', 'hg-btn-primary', function () { showResults(true); }));
       screen('verdict');
       HG.play('success'); HG.confetti();
     }
 
-    // ── K7 / K12 · results (same layout; scores committed here) ──
-    function resultsBlock(c, solved) {
+    // ── K12 · Case unsolved: the missing card stays face down; tap it to flip it. Never "you lost". ──
+    function showUnsolved() {
+      var c = document.getElementById('verdict'); clear(c);
+      verdictHead(c, false);
+      var row = cards(true); c.appendChild(row);
+      Array.prototype.forEach.call(row.children, function (card) { if (found[card.dataset.k]) card.classList.add('up'); });
+      c.appendChild(el('div', 'lead', sentence(true)));
+      c.appendChild(btn('See results', 'hg-btn-primary', function () { showResults(false); }));
+      screen('verdict');
+    }
+
+    // ── K8 · Round results (scores committed here): fastest solve first, then the others in play order ──
+    function showResults(solved) {
       var pts = {};
       players.forEach(function (n) { pts[n] = 0; });
       solves.forEach(function (s) { pts[s.player] += s.pts; });
       if (solved) players.forEach(function (n) { pts[n] += 20; });   // case bonus for every player
       if (!committed) { HG.commitRound('cluedo', pts); committed = true; }
-      if (solved) {
-        var b = el('div', 'infobar bonus'); b.appendChild(el('b', null, 'Case bonus')); b.appendChild(el('span', null, '+20 each'));
-        c.appendChild(b);
-      }
-      // Each player's solve time: their fastest solve (1–2 players), "—" if none. Top Detective = fastest single solve.
       var best = {};
       solves.forEach(function (s) { if (s.ok && (best[s.player] === undefined || s.ms < best[s.player])) best[s.player] = s.ms; });
-      var solvedOnes = solves.filter(function (s) { return s.ok; }).sort(function (a, b) { return a.ms - b.ms; });
-      if (solvedOnes.length) {
-        var top = el('div', 'infobar');
-        top.appendChild(el('b', null, 'Top detective'));
-        top.appendChild(el('span', null, solvedOnes[0].player + ' · fastest solve ' + Math.round(solvedOnes[0].ms / 1000) + ' s'));
-        c.appendChild(top);
-      }
+      var c = document.getElementById('results'); clear(c);
+      c.appendChild(el('div', 'hg-titlebar', 'Round results'));
       var list = el('div', 'hg-ranks'); c.appendChild(list);
       HG.rank(order, function (a, b) {                   // fastest first, "—" last, ties in play order
         var A = best[a], B = best[b];
@@ -617,32 +610,10 @@
         return A - B;
       }).forEach(function (r) {
         var n = r.item;
-        list.appendChild(HG.rankRow(r.place, n, [[null, best[n] === undefined ? '—' : Math.round(best[n] / 1000) + ' s'], ['b', '+' + Math.round(pts[n])], ['w', 'pts']]));
+        list.appendChild(HG.rankRow(r.place, n, best[n] === undefined ? [[null, '—']] : [['b', (best[n] / 1000).toFixed(1)], ['w', 's']]));
       });
-    }
-    function showResults(solved) {
-      var c = document.getElementById('results'); clear(c);
-      c.appendChild(el('div', 'hg-titlebar', 'Case solved'));
-      resultsBlock(c, solved);
-      c.appendChild(btn('See leaderboard', 'hg-btn-primary', showLb));
-      c.appendChild(btn('New case', 'hg-btn-ghost', newCase));
+      c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showLb));
       screen('results');
-    }
-
-    // ── K12 · Case unsolved: the missing card stays face down; tap it to flip it. Never "you lost". ──
-    function showUnsolved() {
-      var c = document.getElementById('verdict'); clear(c);
-      c.appendChild(el('div', 'hg-titlebar', 'Case unsolved'));
-      c.appendChild(el('div', 'lead', sentence(true)));
-      var row = cards(true); c.appendChild(row);
-      Array.prototype.forEach.call(row.children, function (card) { if (found[card.dataset.k]) card.classList.add('up'); });
-      var missing = ['what', 'where', 'who'].filter(function (k) { return !found[k]; });
-      var miss = missing.map(function (k) { return POOL[k].the; }).join(' and ');
-      c.appendChild(el('div', 'note', 'So close! ' + miss.charAt(0).toUpperCase() + miss.slice(1) + ' got away.'));
-      resultsBlock(c, false);
-      c.appendChild(btn('Try a new case', 'hg-btn-primary', newCase));
-      c.appendChild(btn('See leaderboard', 'hg-btn-ghost', showLb));
-      screen('verdict');
     }
 
     function showLb() { screen('lb'); HG.shell.leaderboard(document.getElementById('lb'), newCase); }

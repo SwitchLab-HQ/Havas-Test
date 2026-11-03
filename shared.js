@@ -504,18 +504,24 @@ var HG = (function () {
       var c = pauseSheet.card;
       c.appendChild(el('div', 'hg-card-title', t('paused')));
       var sub = el('div', 'hg-card-sub'); sub.id = 'hg-pause-sub'; c.appendChild(sub);
+      // Design UI - 02: sound switch, this game's rules inline, Resume, then Quit (→ G5 confirmation).
+      var snd = el('button', 'hg-switch-row'); snd.id = 'hg-sound-btn';
+      snd.appendChild(el('span', null, t('sound'))); snd.appendChild(el('span', 'hg-switch'));
+      c.appendChild(snd);
+      c.appendChild(el('div', 'hg-card-rule'));
+      c.appendChild(el('div', 'hg-card-h', t('how_to_play')));
+      var ul = el('ul', 'hg-bullets sm');
+      o.howTo.lines.forEach(function (l) { ul.appendChild(el('li', null, l)); });
+      c.appendChild(ul);
       var resume = el('button', 'hg-btn hg-btn-primary', t('resume'));
-      var snd = el('button', 'hg-btn hg-btn-row'); snd.id = 'hg-sound-btn';
-      var how = el('button', 'hg-btn hg-btn-row', t('how_to_play'));
-      c.appendChild(resume); c.appendChild(snd); c.appendChild(how);
+      var quit = el('button', 'hg-btn hg-btn-quit', t('quit'));
+      c.appendChild(resume); c.appendChild(quit);
       onTap(resume, function () { resumeGame(); });
       onTap(snd, function () { setSound(!soundOn()); renderSound(); });
-      onTap(how, function () { showHowTo('pause'); });
+      onTap(quit, function () { askQuit(); });
     }
     function renderSound() {
-      var b = document.getElementById('hg-sound-btn'); clear(b);
-      b.appendChild(el('span', null, t('sound')));
-      b.appendChild(el('span', 'hg-toggle' + (soundOn() ? ' on' : ''), soundOn() ? t('on') : t('off')));
+      document.getElementById('hg-sound-btn').classList.toggle('on', soundOn());
     }
 
     function buildQuit() {
@@ -523,18 +529,28 @@ var HG = (function () {
       var c = quitSheet.card;
       c.appendChild(el('div', 'hg-card-title', t('quit_title')));
       c.appendChild(el('div', 'hg-card-sub', t('quit_body')));
+      c.appendChild(el('div', 'hg-card-rule'));
       var keep = el('button', 'hg-btn hg-btn-primary', t('keep_playing'));
-      var quit = el('button', 'hg-btn hg-btn-ghost', t('quit'));
+      var quit = el('button', 'hg-btn hg-btn-quit', t('quit'));
       c.appendChild(keep); c.appendChild(quit);
       onTap(keep, function () { quitSheet.wrap.classList.remove('open'); resumeGame(); });
       onTap(quit, function () { if (o.onQuit) o.onQuit(); home(); });
     }
 
     function buildRotate() {
+      // G6 (Design UI - 02): "Paused · Turn your phone upright" card over the dimmed game.
       rotateEl = el('div', 'hg-rotate');
-      rotateEl.appendChild(el('div', 'hg-rotate-icon', '↻ 📱'));
-      rotateEl.appendChild(el('div', 'hg-card-title', t('rotate_title')));
-      rotateEl.appendChild(el('div', 'hg-card-sub', t('rotate_body')));
+      var card = el('div', 'hg-card');
+      card.appendChild(el('div', 'hg-card-title', t('paused')));
+      card.appendChild(el('div', 'hg-card-rule'));
+      card.appendChild(el('div', 'hg-card-h', t('rotate_title')));
+      var icon = el('div', 'hg-rotate-icon');
+      icon.innerHTML = '<svg viewBox="0 0 40 40" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"><rect x="17" y="4" width="17" height="32" rx="3"/><path d="M13 12H8a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5"/></svg>';
+      card.appendChild(icon);
+      var r = el('button', 'hg-btn hg-btn-primary', t('resume'));
+      card.appendChild(r);
+      onTap(r, function () { if (!isLandscape()) checkRotate(); });
+      rotateEl.appendChild(card);
       document.body.appendChild(rotateEl);
     }
 

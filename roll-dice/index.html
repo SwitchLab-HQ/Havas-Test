@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script>
+    // Served at /roll-dice: without the trailing slash, relative asset paths would resolve from the site root.
+    if (/\/roll-dice$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);
+  </script>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-KTRVRJ5D');</script>
+  <!-- End Google Tag Manager -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#001f3b">
+  <title>Monopoly Dice · Hasbro Games × Nestlé</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&display=swap" rel="stylesheet">
+  <!--
+    Monopoly Dice — tap anywhere to roll two dice.
+    Source: Figma "CPW-Hasbro - Mini Games", frame Hasbro_Monopoly_Roll_dice (301:5037), 390 × 664.
+    Part of the Mini Games site since 2026-11-03: reached by its own URL (/roll-dice, QR on the Monopoly pack),
+    not linked from any menu. History (v01–v03) in 3. Outputs/5. Monopoly Dice/.
+  -->
+  <style>
+    :root {
+      --dark-blue: #001f3b;
+      --light-blue: #4ec6e0;
+      --paper: #eef5ed;
+      --f-display: 'Alan Sans', 'Arial Black', sans-serif;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --band-h: 188px;                /* dark band, ends behind the title */
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      touch-action: manipulation; overscroll-behavior: none;
+      -webkit-user-select: none; user-select: none; -webkit-text-size-adjust: 100%;
+    }
+    body {
+      background: var(--paper) url('assets/bg-pattern.webp') center top / cover no-repeat;
+      font-family: var(--f-display);
+      cursor: pointer;
+    }
+
+    .app {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .app::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 0;
+      height: calc(var(--band-h) + var(--safe-top));
+      background: var(--dark-blue);
+    }
+    .app > * { position: relative; }
+
+    /* Header: back arrow + Hasbro Games × Nestlé lockup */
+    .header {
+      flex: none; width: 100%;
+      height: calc(63px + var(--safe-top));
+      padding-top: var(--safe-top);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .header .lockup { display: block; width: 152px; height: 31px; }
+    .back {
+      position: absolute; left: 0; top: var(--safe-top);
+      width: 50px; height: 52px;      /* 26px icon at 12,13 + bigger touch area */
+      display: flex; align-items: center; justify-content: center;
+      cursor: default;
+    }
+    .back img { display: block; width: 26px; height: 26px; transform: scaleX(-1); }   /* icon points right, Figma flips it */
+
+    .logo {
+      flex: none; display: block;
+      width: 255px; height: 50px;
+      margin-top: 23px;
+    }
+    .title {
+      flex: none; margin: 18px 0 0;
+      font-weight: 900; font-size: 52px; line-height: 1;
+      color: #fff; text-transform: uppercase; letter-spacing: 0;
+      -webkit-text-stroke: 10px var(--dark-blue); paint-order: stroke fill;
+      text-shadow: 0 5px 0 var(--dark-blue);
+    }
+
+    /* Dice zone: everything the dice may touch, between title and CTA */
+    .zone {
+      flex: 1 1 auto; min-height: 0;
+      width: 100%; max-width: 420px;
+      margin: 8px 0;
+    }
+    .die { position: absolute; left: 0; top: 0; will-change: transform, filter; }
+    .die-land { width: 100%; height: 100%; }
+    .die-land.thud { animation: thud 260ms cubic-bezier(.3, 1.6, .5, 1); }
+    @keyframes thud { 0% { transform: scale(1.06); } 40% { transform: scale(0.94); } 100% { transform: scale(1); } }
+    .die-spin { width: 100%; height: 100%; will-change: transform; }
+    .die-spin img { display: block; width: 100%; height: 100%; }
+
+    /* CTA: a label, the whole screen is the tap target */
+    .cta {
+      flex: none;
+      width: min(340px, calc(100% - 50px)); height: 60px;
+      margin-bottom: calc(clamp(16px, 10.8dvh, 72px) + env(safe-area-inset-bottom, 0px));
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 20px;
+      background: var(--light-blue);
+      border: 4px solid var(--dark-blue); border-radius: 30px;
+      color: var(--dark-blue);
+      font: 900 20px/1.35 var(--f-display); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
+      transition: transform 120ms ease, opacity 200ms ease;
+    }
+    body.pressed .cta { transform: scale(0.97); }
+    body.rolling .cta { opacity: 0.6; }
+    @media (max-width: 360px) { .cta { font-size: 17px; letter-spacing: 0.5px; } }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KTRVRJ5D"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
+  <main class="app">
+    <header class="header">
+      <!-- Back to the Mini Games home -->
+      <a class="back" id="back" href="../index.html" aria-label="Back to home"><img src="assets/icon-back.svg" alt="" width="26" height="26"></a>
+      <img class="lockup" src="assets/header-logos.svg" alt="Hasbro Games × Nestlé" width="152" height="31">
+    </header>
+    <img class="logo" src="assets/monopoly-logo.svg" alt="Monopoly" width="255" height="50">
+    <h1 class="title">Dices</h1>
+    <div class="zone" id="zone" aria-hidden="true"></div>
+    <div class="cta" role="button" tabindex="0">Tap to roll the dice!</div>
+    <p class="sr-only" aria-live="polite" id="result"></p>
+  </main>
+
+  <script>
+  (() => {
+    const FACE_SRC = [
+      'assets/dice_faces/dice_1.webp',
+      'assets/dice_faces/dice_2.webp',
+      'assets/dice_faces/dice_3.webp',
+      'assets/dice_faces/dice_4.webp',
+      'assets/dice_faces/dice_5.webp',
+      'assets/dice_faces/dice_6.webp',
+    ];
+    FACE_SRC.forEach(src => { new Image().src = src; });   // preload so face swaps never flash
+
+    const DIE_MAX = 93;             // Figma die size (px)
+    const HOME_DX = 80;             // Figma: die centres ~80px either side of the middle
+    const HOP = 0.2;                // max extra scale while bouncing
+    const THUD = 1.06;              // landing overshoot, matches @keyframes thud
+    const PAD = 6;                  // gap to zone edges and between the two halves
+    const JITTER = 16;              // how far a die may rest from its home spot (px)
+    const BLUR_MAX = 4;             // motion blur (px) at full speed, fades out as the die slows
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const zone = document.getElementById('zone');
+    const result = document.getElementById('result');
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
+    const face = () => 1 + Math.floor(Math.random() * 6);
+
+    // Each die owns one half of the zone, so the two can never overlap.
+    const dice = [0, 1].map(i => {
+      const el = document.createElement('div');
+      el.className = 'die';
+      el.innerHTML = '<div class="die-land"><div class="die-spin"><img alt="" draggable="false"></div></div>';
+      zone.appendChild(el);
+      return {
+        i, el,
+        land: el.firstElementChild,
+        spin: el.querySelector('.die-spin'),
+        img: el.querySelector('img'),
+        // start as in the Figma frame: face, rotation, offset from home spot (px)
+        face: i ? 3 : 5, rot: i ? 60.88 : 28.65, jx: i ? -3 : -4, jy: -4,
+        x: 0, y: 0, scale: 1, blur: 0,
+      };
+    });
+
+    let W = 0, H = 0, S = DIE_MAX;
+
+    function setFace(d, n) {
+      d.face = n;
+      d.img.src = FACE_SRC[n - 1];
+    }
+
+    // Bounds for die centre inside its half; r = half-diagonal so any rotation fits.
+    function bounds(d, scale) {
+      const r = S * Math.SQRT1_2 * Math.max(scale, THUD) + PAD;
+      const half = W / 2;
+      const x0 = d.i ? half + r : r, x1 = d.i ? W - r : half - r;
+      const y0 = r, y1 = H - r;
+      const cx = half + (d.i ? 1 : -1) * Math.min(HOME_DX, W / 4), cy = H / 2;
+      return {
+        x0: Math.min(x0, cx), x1: Math.max(x1, cx),
+        y0: Math.min(y0, cy), y1: Math.max(y1, cy),
+        cx, cy,
+      };
+    }
+
+    function restPos(d) {
+      const b = bounds(d, 1);
+      return { x: clamp(b.cx + d.jx, b.x0, b.x1), y: clamp(b.cy + d.jy, b.y0, b.y1) };
+    }
+
+    // Drop shadow stays in screen space (light from top left) and grows as the die hops.
+    function render(d) {
+      d.el.style.transform = `translate(${d.x - S / 2}px, ${d.y - S / 2}px)`;
+      d.spin.style.transform = `rotate(${d.rot}deg) scale(${d.scale})`;
+      d.spin.style.filter = d.blur ? `blur(${d.blur.toFixed(2)}px)` : 'none';
+      const h = d.scale - 1;
+      d.el.style.filter = `drop-shadow(${3 + h * 40}px ${4 + h * 60}px ${h * 40}px rgba(0,0,0,${0.25 - h * 0.4}))`;
+    }
+
+    function layout() {
+      W = zone.clientWidth; H = zone.clientHeight;
+      // size so a die at any rotation fits its half (and the zone height), capped at the Figma size
+      S = Math.max(40, Math.min(DIE_MAX, (W / 2 - 2 * PAD) / Math.SQRT2 / THUD, (H - 2 * PAD) / Math.SQRT2 / THUD));
+      dice.forEach(d => {
+        d.el.style.width = d.el.style.height = S + 'px';
+        if (!rolling) { Object.assign(d, restPos(d)); render(d); }
+      });
+    }
+
+    // Catmull-Rom through waypoints, t in [0,1]
+    function path(pts, t) {
+      const n = pts.length - 1, f = clamp(t * n, 0, n - 1e-6), k = Math.floor(f), u = f - k;
+      const p0 = pts[Math.max(k - 1, 0)], p1 = pts[k], p2 = pts[k + 1], p3 = pts[Math.min(k + 2, n)];
+      const c = (a, b, c2, d2) => 0.5 * (2 * b + (c2 - a) * u + (2 * a - 5 * b + 4 * c2 - d2) * u * u + (3 * b - a - 3 * c2 + d2) * u * u * u);
+      return { x: c(p0.x, p1.x, p2.x, p3.x), y: c(p0.y, p1.y, p2.y, p3.y) };
+    }
+
+    let rolling = false;
+
+    function roll() {
+      if (rolling) return;
+      rolling = true;
+      document.body.classList.add('rolling');
+      result.textContent = '';
+
+      const first = rand(1900, 2150);
+      const plans = dice.map((d, idx) => {
+        const final = face();
+        d.jx = rand(-JITTER, JITTER); d.jy = rand(-JITTER, JITTER);
+        const end = restPos(d);
+        const b = bounds(d, 1 + HOP);
+        const pts = [{ x: d.x, y: d.y }];
+        for (let k = 0; k < 4; k++) pts.push({ x: rand(b.x0, b.x1), y: rand(b.y0, b.y1) });
+        pts.push(end);
+        const endRot = rand(0, 360);
+        const dir = Math.random() < 0.5 ? -1 : 1;
+        const startRot = d.rot;
+        const spin = dir * rand(900, 1300);
+        return {
+          d, final, pts, startRot,
+          rotTo: endRot + 360 * Math.round((startRot + spin - endRot) / 360),
+          dur: reduceMotion ? 400 + idx * 250 : (idx ? first + rand(450, 650) : first),
+          bounces: Math.round(rand(4, 6)),
+          nextFace: 0, done: false,
+        };
+      });
+
+      // biggest hop that still fits a die's half on small screens
+      const maxScale = Math.max(THUD, Math.min(1 + HOP, (Math.min(W / 2, H) / 2 - PAD) / (S * Math.SQRT1_2)));
+      const t0 = performance.now();
+      function frame(now) {
+        const t = Math.max(0, now - t0);   // rAF time can be a few ms before the tap's performance.now()
+        let active = 0;
+        plans.forEach(p => {
+          if (p.done) return;
+          const d = p.d;
+          const u = Math.min(t / p.dur, 1);
+          const e = 1 - Math.pow(1 - u, 3);            // ease-out cubic
+          const prev = { x: d.x, y: d.y, rot: d.rot };
+          d.rot = p.startRot + (p.rotTo - p.startRot) * e;
+          d.scale = reduceMotion ? 1 : 1 + HOP * Math.abs(Math.sin(u * Math.PI * p.bounces)) * Math.pow(1 - u, 1.4);
+          d.scale = Math.min(d.scale, maxScale);
+          const pos = path(p.pts, e), b = bounds(d, d.scale);   // keep the scaled die inside its half
+          d.x = clamp(pos.x, b.x0, b.x1); d.y = clamp(pos.y, b.y0, b.y1);
+          // motion blur from speed: travel of the die centre + its corners spinning, per 60 fps frame
+          const dt = p.lastT === undefined ? 0 : now - p.lastT;
+          p.lastT = now;
+          if (dt > 0 && !reduceMotion) {
+            const moved = Math.hypot(d.x - prev.x, d.y - prev.y) + Math.abs(d.rot - prev.rot) * Math.PI / 180 * S * Math.SQRT1_2;
+            const speed = moved * 16.7 / Math.max(dt, 8);
+            d.blur = speed < 3 ? 0 : Math.min(BLUR_MAX, speed * 0.14);
+          }
+          if (t >= p.nextFace && u < 0.9) {               // swap faces, slowing down
+            let n; do { n = face(); } while (n === d.face);
+            setFace(d, n);
+            p.nextFace = t + 60 + 260 * u * u;
+          }
+          if (u >= 1) {
+            p.done = true;
+            d.rot = ((p.rotTo % 360) + 360) % 360;
+            d.scale = 1; d.blur = 0;
+            setFace(d, p.final);
+            d.land.classList.remove('thud'); void d.land.offsetWidth; d.land.classList.add('thud');
+            if (navigator.vibrate) navigator.vibrate(25);
+          } else active++;
+          render(d);
+        });
+        if (active) requestAnimationFrame(frame);
+        else {
+          rolling = false;
+          document.body.classList.remove('rolling');
+          const a = plans[0].final, b = plans[1].final;
+          result.textContent = `You rolled ${a} and ${b}. Total ${a + b}.`;
+        }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    // Tap anywhere (except the back arrow)
+    const back = document.getElementById('back');
+    document.addEventListener('pointerdown', e => {
+      if (e.button > 0 || back.contains(e.target)) return;
+      document.body.classList.add('pressed');
+      roll();
+    });
+    ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => document.body.classList.remove('pressed')));
+    document.addEventListener('keydown', e => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); roll(); }
+    });
+    document.addEventListener('dblclick', e => e.preventDefault());
+
+    dice.forEach(d => setFace(d, d.face));
+    new ResizeObserver(layout).observe(zone);
+    layout();
+  })();
+  </script>
+</body>
+</html>

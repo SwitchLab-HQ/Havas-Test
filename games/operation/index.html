@@ -16,7 +16,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&family=Inter+Tight:wght@400;500;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../shared.css">
   <style>
-    /* Operation · logic: wireframes board 06 (65:316) · look: Design UI section OPERATION (283:2846), Operation_00–07. */
+    /* Operation · logic: wireframes board 06 (65:316) · look: Design UI - 02 section OPERATION (283:2846), Operation_00–09.
+       Board = "art + hitbox" (2026-11-03): the AD paints the path into the art and delivers a black / white mask at
+       the same size (black = path, white = wall). Same for the tool: Operation_pince art + mask (circle = the bone,
+       the part tested against the walls; rectangle = where the finger picks it up). */
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { width:100%; height:100%; overflow:hidden; color:var(--dark-blue); }
     .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; }
@@ -25,27 +28,32 @@
     .stack > .hg-btn:first-of-type { margin-top:auto; }
     .note { font-family:var(--f-body); font-weight:700; font-size:14px; line-height:20px; color:var(--dark-blue); text-align:center; }
 
-    /* O1 / O2 / O6 */
-    #play { padding:15px 20px 12px; gap:8px; }
+    /* O1 / O2 / O6 · HUD on top, the art fills the rest of the screen */
+    #play { padding:15px 0 0; gap:8px; }
+    #play .hg-banner { margin:0 20px; width:calc(100% - 40px); }
     .hg-banner-body { right:90px; gap:9px; }
     .touches { align-self:flex-start; font-family:var(--f-body); font-weight:700; font-size:11px; color:#fff; background:var(--dark-blue); padding:5px 10px; border-radius:12px; }
-    .boardwrap { --s: min(350px, 92vw, calc(100vh - 44px - 15px - 121px - 8px - 130px)); width:var(--s); height:var(--s); position:relative; flex-shrink:0; border-radius:calc(var(--s) * 0.0914); background:#fff; }
-    .boardwrap .art { position:absolute; inset:3.43%; border-radius:calc(var(--s) * 0.063); background:#d5d9df; }
-    canvas { position:absolute; left:0; top:0; width:100%; height:calc(100% + 76px); display:block; touch-action:none; z-index:2; }
-    .tipline { min-height:40px; padding:0 20px; margin-top:66px; }
-    /* BZZT! (O6): whole screen goes orange for a moment */
-    .bzzt { position:fixed; inset:0; z-index:40; display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px; pointer-events:none;
-      background:rgba(246,138,30,0.82); }
+    .stage { position:relative; flex:1; width:100%; min-height:0; overflow:hidden; touch-action:none; }
+    .stage .fill { position:absolute; inset:-30px; background-size:cover; background-position:center top; filter:blur(18px); opacity:.9; }
+    .board { position:absolute; top:0; left:50%; transform-origin:0 0; }
+    .board img.art { position:absolute; left:0; top:0; display:block; pointer-events:none; }
+    .board img.tool { position:absolute; left:0; top:0; display:block; pointer-events:none; will-change:transform; }
+    .board.ready img.tool { animation:toolpulse 1.1s ease-in-out infinite; }
+    @keyframes toolpulse { 50% { filter:drop-shadow(0 0 14px rgba(255,255,255,.95)); } }
+    /* BZZT! (O6): red flash under the header for a moment */
+    .bzzt { position:fixed; left:0; right:0; top:44px; bottom:0; z-index:40; display:none; flex-direction:column; align-items:center; justify-content:center; gap:24px; pointer-events:none;
+      background:rgba(230,0,58,0.55); }
     .bzzt.on { display:flex; }
     .bzzt .hg-title { font-size:84px; color:#fff; -webkit-text-stroke:10px var(--dark-blue); paint-order:stroke fill; }
-    .minus { font-family:var(--f-display); font-weight:900; font-size:24px; color:#fff; background:var(--dark-blue); padding:8px 18px; border-radius:24px; }
+    .minus { font-family:var(--f-display); font-weight:900; font-size:22px; color:#fff; background:var(--dark-blue); padding:9px 18px; border-radius:32px; }
 
     /* O4 / O8 */
-    .breakdown { width:100%; max-width:352px; background:#fff; border-radius:26px; padding:12px 18px; display:flex; flex-direction:column; gap:6px; }
+    .breakdown { width:100%; max-width:354px; background:#fff; border-radius:26px; padding:20px 24px; display:flex; flex-direction:column; gap:14px; }
     .breakdown div { display:flex; justify-content:space-between; font-family:var(--f-body); font-size:13px; opacity:0; transform:translateY(6px); transition:opacity .3s, transform .3s; }
     .breakdown div.in { opacity:1; transform:none; }
     .breakdown b { font-family:var(--f-body); font-weight:900; }
-    .lifted-art { width:120px; height:120px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; font-size:64px; }
+    #turnend { justify-content:flex-start; padding-top:40px; }
+    #turnend.lifted { justify-content:center; }
     .shout { font-family:var(--f-display); font-weight:900; font-size:40px; line-height:1.05; color:#fff; text-transform:uppercase;
       -webkit-text-stroke:8px var(--dark-blue); paint-order:stroke fill; }
   </style>
@@ -68,8 +76,10 @@
         </div>
         <div class="hg-banner-right" id="timerslot"></div>
       </div>
-      <div class="boardwrap" id="boardwrap"><div class="art"></div><canvas id="cv"></canvas></div>
-      <div class="note tipline" id="tipline">Put your finger on the tweezers handle. The timer starts then</div>
+      <div class="stage" id="stage">
+        <div class="fill" id="fill"></div>
+        <div class="board" id="board"><img class="art" id="art" alt=""><img class="tool" id="tool" alt=""></div>
+      </div>
     </div>
 
     <div id="turnend" class="screen stack"></div>   <!-- O4 / O8 -->
@@ -80,24 +90,22 @@
 
   <script src="../../shared.js"></script>
   <script>
-    // ── Paths: SVG path data in board units (350 × 350, the Figma board). The tool starts at the
-    //    path start and goes up first (the ring is held 60 px above the finger).
-    //    Funny Bone = Figma Operation_02. Par / slow per path from playtests: placeholders. ──
+    // ── Paths: one art + one mask each, same size (black = path, white = wall), in art pixels.
+    //    start = centre of the start blob, exit = centre of the exit blob (where the bone comes out).
+    //    Play again = another path (once there is more than one). Par / slow from playtests: placeholders. ──
     var PATHS = [
-      { name: 'Funny Bone', halfW: 15, par: 7000, slow: 28000,
-        d: 'M60 290 V175 C60 128.3 130 128.3 130 175 V255 C130 301.7 200 301.7 200 255 V95 C200 48.3 270 48.3 270 95 V170' },
-      { name: 'Wrist Bone', halfW: 17, par: 6000, slow: 25000,
-        d: 'M70 290 V185 H170 V95 H280 V180' },
-      { name: 'Spare Ribs', halfW: 15, par: 8000, slow: 30000,
-        d: 'M60 290 V95 H130 V255 H200 V95 H275 V190' }
+      { name: 'Funny Bone', art: 'assets/paths/path-01-art.webp', mask: 'assets/paths/path-01-hitbox.png',
+        start: [252, 408], exit: [996, 212], par: 7000, slow: 28000 }
     ];
-    var B = 350;                // board units
+    // Tool art + mask (Operation_pince_01 / _hitbox), same pixel scale as the path art.
+    var TOOL = { art: 'assets/tool.webp', mask: 'assets/tool-hitbox.png' };
+    var ART_W = 1200;            // art width = phone width at 390 px (Figma: 390 × 500.5 under the HUD)
     var CFG = {
-      GRIP_OFFSET: 60,          // clamp grip: the ring sits 60 px above the finger
-      RING_R: 9,                // ring drawn
-      HIT_R: 5,                 // ring tested against the walls
-      PAD_R: 28,                // start pad (TOUCH HERE)
-      GRACE_MS: 500,            // wall debounce
+      FIT_H: 1300,               // art pixels that must fit in height: the lowest bone spot + the finger under it
+      EXIT_R: 70,                // bone out when its centre is this close to the exit (art px)
+      GRIP_SLOP: 12,             // extra CSS px around the finger zone of the tool
+      STEP: 8,                   // wall test every 8 art px along a move (no tunnelling through a wall)
+      GRACE_MS: 500,             // wall debounce
       CTA_DELAY: 800
     };
     var el = HG.el, clear = HG.clear, tap = HG.onTap;
@@ -106,14 +114,16 @@
     var players = [], order = [], turn = 0, results = [], pathIdx = -1, committed = false;
     // ── Turn state ──
     var phase = 'idle';   // idle | ready (O1, waiting for pick-up) | run (O2) | over
-    var touches = 0, inWall = false, graceUntil = 0, maxProg = 0, firstPickup = true, picked = false;
-    var trackId = null, ring = { x: 0, y: 0 }, finger = null, offX = 0, offY = 0;
-    var clock = HG.Clock(), hudTimer = null, raf = null, turnStarted = false;
+    var touches = 0, inWall = false, graceUntil = 0, maxProg = 0, picked = false, turnStarted = false;
+    var trackId = null, bone = { x: 0, y: 0 }, offX = 0, offY = 0;
+    var clock = HG.Clock(), hudTimer = null;
     var timer = HG.timerRing(); document.getElementById('timerslot').appendChild(timer.el);
 
-    // ── Geometry ──
-    var cv = document.getElementById('cv'), ctx = cv.getContext('2d'), wrap = document.getElementById('boardwrap');
-    var k = 1, path2d = null, samples = [], total = 0, startPt, exitPt;
+    // ── Geometry: everything in art pixels; k = CSS px per art px ──
+    var stage = document.getElementById('stage'), boardEl = document.getElementById('board');
+    var artEl = document.getElementById('art'), toolEl = document.getElementById('tool');
+    var k = 1, artH = 0, wall = null, dist = null, DS = 4, dw = 0, dh = 0, startDist = 1;
+    var tool = null;   // { w, h, cx, cy, r, grip: [x0, y0, x1, y1] } read from the tool mask
 
     function screen(id) {
       document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
@@ -121,87 +131,95 @@
     }
     function btn(text, cls, fn) { var b = el('button', 'hg-btn ' + cls, text); tap(b, fn); return b; }
 
-    function preparePath() {
-      var P = PATHS[pathIdx];
-      path2d = new Path2D(P.d);
-      var svgp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      svgp.setAttribute('d', P.d);
-      total = svgp.getTotalLength();
-      samples = [];
-      for (var l = 0; l <= total; l += 2) { var p = svgp.getPointAtLength(l); samples.push({ x: p.x, y: p.y, l: l }); }
-      var e = svgp.getPointAtLength(total); samples.push({ x: e.x, y: e.y, l: total });
-      startPt = samples[0]; exitPt = samples[samples.length - 1];
+    function maskData(img) {
+      var c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+      var g = c.getContext('2d'); g.drawImage(img, 0, 0);
+      var d = g.getImageData(0, 0, c.width, c.height).data, out = new Uint8Array(c.width * c.height);
+      for (var i = 0; i < out.length; i++) out[i] = d[i * 4] < 128 ? 1 : 0;   // 1 = black
+      return { w: c.width, h: c.height, px: out };
     }
-    function layout() {
-      var r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
-      cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
-      k = r.width / B;                                   // CSS px per board unit
-      ctx.setTransform(dpr * k, 0, 0, dpr * k, 0, 0);    // draw in board units
-    }
-    // Nearest point on the path: distance (board units) + progress (0–1)
-    function nearest(x, y) {
-      var best = Infinity, at = 0;
-      for (var i = 0; i < samples.length; i++) {
-        var dx = samples[i].x - x, dy = samples[i].y - y, d = dx * dx + dy * dy;
-        if (d < best) { best = d; at = samples[i].l; }
+    // Tool mask: the round blob on top is the bone, the block under it is the finger zone.
+    function readTool(img) {
+      var m = maskData(img), rows = [];
+      for (var y = 0; y < m.h; y++) {
+        var x0 = -1, x1 = -1;
+        for (var x = 0; x < m.w; x++) if (m.px[y * m.w + x]) { if (x0 < 0) x0 = x; x1 = x; }
+        rows.push(x0 < 0 ? null : [x0, x1]);
       }
-      return { d: Math.sqrt(best), prog: total ? at / total : 0 };
+      var y = 0; while (!rows[y]) y++;
+      var by0 = y; while (rows[y]) y++;
+      var by1 = y - 1; while (!rows[y]) y++;
+      var gy0 = y, gx0 = m.w, gx1 = 0;
+      for (; y < m.h; y++) if (rows[y]) { gx0 = Math.min(gx0, rows[y][0]); gx1 = Math.max(gx1, rows[y][1]); }
+      var bx0 = m.w, bx1 = 0;
+      for (y = by0; y <= by1; y++) { bx0 = Math.min(bx0, rows[y][0]); bx1 = Math.max(bx1, rows[y][1]); }
+      return { w: m.w, h: m.h, cx: (bx0 + bx1) / 2, cy: (by0 + by1) / 2, r: (by1 - by0) / 2, grip: [gx0, gy0, gx1 + 1, m.h] };
+    }
+    // Distance along the path to the exit, on a 1/4 grid (BFS through black pixels) → progress for O8.
+    function buildDist(P) {
+      dw = Math.ceil(wall.w / DS); dh = Math.ceil(wall.h / DS);
+      dist = new Int32Array(dw * dh).fill(-1);
+      var open = new Uint8Array(dw * dh);
+      for (var y = 0; y < dh; y++) for (var x = 0; x < dw; x++)
+        open[y * dw + x] = wall.px[Math.min(wall.h - 1, y * DS + 2) * wall.w + Math.min(wall.w - 1, x * DS + 2)];
+      var q = new Int32Array(dw * dh), qh = 0, qt = 0;
+      var s0 = Math.round(P.exit[1] / DS) * dw + Math.round(P.exit[0] / DS);
+      dist[s0] = 0; q[qt++] = s0;
+      while (qh < qt) {
+        var i = q[qh++], x = i % dw, yy = (i - x) / dw;
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+          var a = x + d[0], b = yy + d[1];
+          if (a < 0 || b < 0 || a >= dw || b >= dh) return;
+          var j = b * dw + a;
+          if (open[j] && dist[j] < 0) { dist[j] = dist[i] + 1; q[qt++] = j; }
+        });
+      }
+      startDist = Math.max(1, distAt(P.start[0], P.start[1]));
+    }
+    function distAt(x, y) {
+      var v = dist[Math.round(y / DS) * dw + Math.round(x / DS)];
+      return v === undefined ? -1 : v;
+    }
+    function isPath(x, y) {
+      x = Math.round(x); y = Math.round(y);
+      if (x < 0 || y < 0 || x >= wall.w || y >= wall.h) return false;
+      return wall.px[y * wall.w + x] === 1;
+    }
+    // The bone touches a wall if any point of its rim is off the path.
+    function boneHitsWall(x, y) {
+      for (var a = 0; a < 24; a++) {
+        var t = a / 24 * Math.PI * 2;
+        if (!isPath(x + Math.cos(t) * tool.r, y + Math.sin(t) * tool.r)) return true;
+      }
+      return false;
     }
 
-    // ── Drawing (board units) ──
-    function draw(now) {
-      ctx.clearRect(0, 0, B, B + 120);
-      var P = PATHS[pathIdx];
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#001f3b'; ctx.lineWidth = P.halfW * 2 + 10; ctx.stroke(path2d);   // walls
-      ctx.strokeStyle = '#ffffff'; ctx.lineWidth = P.halfW * 2; ctx.stroke(path2d);        // corridor
-      // EXIT (bone exit)
-      roundRect(exitPt.x - 32, exitPt.y - 12, 64, 32, 16);
-      ctx.fillStyle = '#d5d9df'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = '#001f3b'; ctx.stroke();
-      ctx.fillStyle = '#001f3b'; ctx.font = '900 11px "Alan Sans", Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('EXIT', exitPt.x, exitPt.y + 4);
-      // Tweezers: handle (TOUCH HERE) 60 px under the ring, so the finger never hides the start dot.
-      if (phase === 'ready') {
-        var g = grip();
-        drawTweezers(g.x, g.y);
-        var pulse = 1 + 0.15 * Math.sin((now || 0) / 200);
-        ctx.fillStyle = 'rgba(78,198,224,0.4)'; ctx.beginPath(); ctx.arc(g.x, g.y, 34 * pulse, 0, 7); ctx.fill();
-        ctx.fillStyle = '#4ec6e0'; ctx.strokeStyle = '#001f3b'; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(g.x, g.y, CFG.PAD_R, 0, 7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#001f3b'; ctx.font = '900 9px "Alan Sans", Arial';
-        ctx.fillText('TOUCH', g.x, g.y - 5); ctx.fillText('HERE', g.x, g.y + 6);
-        drawRing();
-      }
-      if (phase !== 'ready' && picked) drawTool();
+    function loadImg(src) {
+      return new Promise(function (ok, ko) { var i = new Image(); i.onload = function () { ok(i); }; i.onerror = ko; i.src = src; });
     }
-    function grip() { return { x: ring.x, y: ring.y + CFG.GRIP_OFFSET / k }; }
-    // Two arms from the handle up to the tips, which hold the ring (tool = bone).
-    function drawTweezers(hx, hy) {
-      ctx.lineCap = 'round';
-      [[-1], [1]].forEach(function (sd) {
-        ctx.strokeStyle = '#001f3b'; ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.moveTo(hx + sd[0] * 8, hy - 6); ctx.lineTo(ring.x + sd[0] * (CFG.RING_R - 2), ring.y + 4); ctx.stroke();
-        ctx.strokeStyle = '#cfd6de'; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.moveTo(hx + sd[0] * 8, hy - 6); ctx.lineTo(ring.x + sd[0] * (CFG.RING_R - 2), ring.y + 4); ctx.stroke();
+    function preparePath() {
+      var P = PATHS[pathIdx];
+      artEl.src = P.art;
+      document.getElementById('fill').style.backgroundImage = 'url("' + P.art + '")';
+      return Promise.all([loadImg(P.mask), tool ? null : loadImg(TOOL.mask)]).then(function (r) {
+        wall = maskData(r[0]); artH = wall.h * ART_W / wall.w;
+        if (r[1]) tool = readTool(r[1]);
+        toolEl.src = TOOL.art; toolEl.style.width = tool.w + 'px'; toolEl.style.height = tool.h + 'px';
+        artEl.style.width = ART_W + 'px'; artEl.style.height = artH + 'px';
+        buildDist(P);
       });
     }
-    function drawRing() {
-      ctx.fillStyle = '#fff'; ctx.strokeStyle = inWall ? '#ea3557' : '#001f3b'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(ring.x, ring.y, CFG.RING_R, 0, 7); ctx.fill(); ctx.stroke();
-    }
-    function roundRect(x, y, w, h, r) {
-      ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+
+    // The art fills the width (as in Figma); on short screens it shrinks so the path and the tool fit.
+    function layout() {
+      var r = stage.getBoundingClientRect();
+      k = Math.min(r.width / ART_W, r.height / CFG.FIT_H);
+      boardEl.style.width = ART_W + 'px'; boardEl.style.height = artH + 'px';
+      boardEl.style.transform = 'translateX(' + (-ART_W * k / 2) + 'px) scale(' + k + ')';
     }
     function drawTool() {
-      if (finger) {
-        drawTweezers(finger.x, finger.y);
-        ctx.fillStyle = 'rgba(0,31,59,0.22)'; ctx.beginPath(); ctx.arc(finger.x, finger.y, 18, 0, 7); ctx.fill();
-      }
-      drawRing();
+      toolEl.style.transform = 'translate(' + (bone.x - tool.cx) + 'px,' + (bone.y - tool.cy) + 'px)';
     }
-    function loop(now) { draw(now); raf = phase === 'ready' ? requestAnimationFrame(loop) : null; }
-    function startLoop() { if (!raf) raf = requestAnimationFrame(loop); }
 
     // ── HUD ──
     function hud() {
@@ -214,9 +232,7 @@
       order = HG.shuffle(players); turn = 0; results = []; committed = false;
       var next; do { next = Math.floor(Math.random() * PATHS.length); } while (PATHS.length > 1 && next === pathIdx);
       pathIdx = next;                 // same path + bone for everyone; Play again = a new one
-      preparePath();
-      firstPickup = true;
-      showUpNext();
+      preparePath().then(showUpNext);
     }
     function showUpNext() {
       phase = 'idle'; screen('upnext');
@@ -226,61 +242,71 @@
     // ── O1 · Pick up the tool ──
     function startTurn() {
       turnStarted = true;
-      phase = 'ready'; touches = 0; inWall = false; graceUntil = 0; maxProg = 0; trackId = null; picked = false; finger = null;
+      phase = 'ready'; touches = 0; inWall = false; graceUntil = 0; maxProg = 0; trackId = null; picked = false;
       clock = HG.Clock();
       document.getElementById('who').textContent = order[turn];
       document.getElementById('pathname').textContent = PATHS[pathIdx].name;
-      document.getElementById('tipline').style.visibility = firstPickup ? '' : 'hidden';
       screen('play');
       layout();
-      ring = { x: startPt.x, y: startPt.y };
-      hud(); startLoop();
+      bone = { x: PATHS[pathIdx].start[0], y: PATHS[pathIdx].start[1] };
+      drawTool(); boardEl.classList.add('ready');
+      hud();
     }
 
     // ── Touch (only the finger that picked up the tool counts) ──
-    function local(t) { var r = cv.getBoundingClientRect(); return { x: (t.clientX - r.left) / k, y: (t.clientY - r.top) / k }; }
+    function local(t) {
+      var r = boardEl.getBoundingClientRect();
+      return { x: (t.clientX - r.left) / k, y: (t.clientY - r.top) / k };
+    }
+    function onGrip(p) {
+      var g = tool.grip, s = CFG.GRIP_SLOP / k;
+      var x = p.x - (bone.x - tool.cx), y = p.y - (bone.y - tool.cy);   // in tool pixels
+      return x >= g[0] - s && x <= g[2] + s && y >= g[1] - s && y <= g[3] + s;
+    }
 
-    cv.addEventListener('touchstart', function (e) {
+    stage.addEventListener('touchstart', function (e) {
       e.preventDefault();
       if (phase !== 'ready' || HG.shell.isPaused()) return;
       for (var i = 0; i < e.changedTouches.length; i++) {
         var t = e.changedTouches[i], p = local(t);
-        var g = grip();
-        if (Math.hypot(p.x - g.x, p.y - g.y) > CFG.PAD_R + 14) continue;      // anywhere else does nothing
+        if (!onGrip(p)) continue;                                    // anywhere else does nothing
         trackId = t.identifier;
-        finger = p;
-        offX = ring.x - p.x; offY = ring.y - p.y;                            // clamp grip: ring stays above the finger
+        offX = bone.x - p.x; offY = bone.y - p.y;                    // the bone keeps its place above the finger
         picked = true; phase = 'run';
-        firstPickup = false;
-        document.getElementById('tipline').style.visibility = 'hidden';
+        boardEl.classList.remove('ready');
         if (clock.ms() === 0 && !clock.running()) clock.start(); else clock.resume();   // timer starts on pick-up
         clearInterval(hudTimer); hudTimer = setInterval(hud, 100);
         HG.play('tick');
-        checkWalls(); draw();
+        checkWalls();
         return;
       }
     }, { passive: false });
 
-    cv.addEventListener('touchmove', function (e) {
+    stage.addEventListener('touchmove', function (e) {
       e.preventDefault();
       if (phase !== 'run' || HG.shell.isPaused()) return;
       for (var i = 0; i < e.changedTouches.length; i++) {
         var t = e.changedTouches[i];
         if (t.identifier !== trackId) continue;
-        finger = local(t);
-        ring = { x: finger.x + offX, y: finger.y + offY };
-        checkWalls();
-        if (Math.hypot(ring.x - exitPt.x, ring.y - exitPt.y) < 14) return boneOut();
-        draw();
+        var p = local(t), to = { x: p.x + offX, y: p.y + offY };
+        // Walk the move in small steps so a fast swipe can't jump over a wall.
+        var n = Math.max(1, Math.ceil(Math.hypot(to.x - bone.x, to.y - bone.y) / CFG.STEP)), from = bone;
+        for (var s = 1; s <= n; s++) {
+          bone = { x: from.x + (to.x - from.x) * s / n, y: from.y + (to.y - from.y) * s / n };
+          checkWalls();
+          var ex = PATHS[pathIdx].exit;
+          if (Math.hypot(bone.x - ex[0], bone.y - ex[1]) < CFG.EXIT_R) { drawTool(); return boneOut(); }
+        }
+        drawTool();
       }
     }, { passive: false });
 
     function checkWalls() {
-      var n = nearest(ring.x, ring.y);
-      var wall = n.d > PATHS[pathIdx].halfW - CFG.HIT_R;
-      if (wall && !inWall && performance.now() >= graceUntil) wallTouch();
-      inWall = wall;
-      if (!wall) maxProg = Math.max(maxProg, n.prog);
+      var hit = boneHitsWall(bone.x, bone.y);
+      if (hit && !inWall && performance.now() >= graceUntil) wallTouch();
+      inWall = hit;
+      var d = distAt(bone.x, bone.y);
+      if (!hit && d >= 0) maxProg = Math.max(maxProg, Math.min(1, 1 - d / startDist));
     }
 
     function onEnd(e) {
@@ -290,22 +316,22 @@
       for (var i = 0; i < e.changedTouches.length; i++)
         if (e.changedTouches[i].identifier === trackId) return fingerLifted();
     }
-    cv.addEventListener('touchend', onEnd, { passive: false });
-    cv.addEventListener('touchcancel', onEnd, { passive: false });
+    stage.addEventListener('touchend', onEnd, { passive: false });
+    stage.addEventListener('touchcancel', onEnd, { passive: false });
 
     // ── O6 · BZZT! ──
     var bz = document.getElementById('bzzt'), bzT = null;
     function wallTouch() {
       touches++;
       graceUntil = performance.now() + CFG.GRACE_MS;
-      HG.feedback('buzz', wrap);
+      HG.feedback('buzz', stage);
       bz.classList.add('on'); clearTimeout(bzT); bzT = setTimeout(function () { bz.classList.remove('on'); }, 450);
       hud();
     }
 
     function endRun() {
       clock.stop(); clearInterval(hudTimer); hud();
-      phase = 'over'; trackId = null; finger = null; draw();
+      phase = 'over'; trackId = null;
     }
     function breakdown(ms, t) {
       var P = PATHS[pathIdx];
@@ -335,23 +361,22 @@
       var pts40 = maxProg * 40;
       results.push({ name: order[turn], out: false, ms: clock.ms(), touches: touches, prog: maxProg, pts: pts40, seq: turn });
       HG.play('fail');
-      var c = turnEnd('Finger lifted!', Math.round(pts40), 'So close! You got ' + Math.round(maxProg * 100) + ' % of the way');
-      c.insertBefore(el('div', 'lifted-art', '☝'), c.firstChild);
+      turnEnd('Finger lifted!', Math.round(pts40), 'So close! You got ' + Math.round(maxProg * 100) + ' % of the way');
     }
 
     function turnEnd(title, pts, sub) {
       var c = document.getElementById('turnend'); clear(c);
+      c.classList.toggle('lifted', !!sub);
       c.appendChild(el('div', 'shout', title));
       if (sub) c.appendChild(el('div', 'note', sub));
       var panel = el('div', 'hg-score');
       panel.appendChild(el('div', 'hg-score-label', 'Score:'));
       var v = el('div', 'hg-score-val', String(pts)); v.appendChild(el('small', null, 'pts')); panel.appendChild(v);
       c.appendChild(panel);
-      var last = turn === order.length - 1;
-      var cta = btn(last ? 'See results' : 'Next: ' + order[turn + 1], 'hg-btn-primary', function () {
+      var cta = btn(HG.t('next'), 'hg-btn-primary', function () {
         if (cta.disabled) return;
-        turnStarted = false; turn++;
-        if (turn >= order.length) showResults(); else showUpNext();
+        turnStarted = false;
+        showResults();
       });
       cta.disabled = true; setTimeout(function () { cta.disabled = false; }, CFG.CTA_DELAY);
       c.appendChild(cta);
@@ -359,23 +384,26 @@
       return c;
     }
 
-    // ── O5 · Round results (scores committed here) ──
+    // ── O5 · Round results: after every turn (players still to play keep an empty badge);
+    //    after the last turn the scores are committed and NEXT goes to the leaderboard (G3). ──
     function showResults() {
       phase = 'idle';
+      var last = turn === order.length - 1;
       var pts = {};
       results.forEach(function (r) { pts[r.name] = r.pts; });
-      if (!committed) { HG.commitRound('operation', pts); committed = true; }
+      if (last && !committed) { HG.commitRound('operation', pts); committed = true; }
       var c = document.getElementById('results'); clear(c);
       c.appendChild(el('div', 'hg-titlebar', 'Round results'));
       var list = el('div', 'hg-ranks'); c.appendChild(list);
       HG.rank(results, function (a, b) { return b.pts - a.pts; }).forEach(function (r) {
-        var res = r.item;
-        list.appendChild(HG.rankRow(r.place, res.name, [[null, res.out ? HG.fmtSec(res.ms) : 'Lifted'], ['b', String(Math.round(res.pts))], ['w', 'pts']]));
+        list.appendChild(HG.rankRow(r.place, r.item.name, [['b', String(Math.round(r.item.pts))], ['w', 'pts']]));
       });
-      c.appendChild(btn('See leaderboard', 'hg-btn-primary', function () { screen('lb'); HG.shell.leaderboard(document.getElementById('lb'), newRound); }));
-      c.appendChild(btn('Play again', 'hg-btn-ghost', newRound));
+      order.slice(turn + 1).forEach(function (n) { list.appendChild(HG.rankRow(null, n, null)); });
+      if (last) c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showLeaderboard));
+      else { turn++; c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showUpNext)); }
       screen('results');
     }
+    function showLeaderboard() { screen('lb'); HG.shell.leaderboard(document.getElementById('lb'), newRound); }
 
     // ── Shell ──
     HG.shell.init({
@@ -387,23 +415,21 @@
         cta: 'Got it'
       },
       currentPlayer: function () { return order[turn]; },
-      hasProgress: function () { return !committed && (turn > 0 || turnStarted); },
+      hasProgress: function () { return !committed && (turn > 0 || turnStarted || results.length > 0); },
       onPause: function () {
         // The tool stays where it is; the run and the timer carry on when the player picks it up again.
-        if (phase === 'run') { clock.pause(); clearInterval(hudTimer); trackId = null; finger = null; phase = 'ready'; inWall = false; }
-        if (raf) { cancelAnimationFrame(raf); raf = null; }
+        if (phase === 'run') { clock.pause(); clearInterval(hudTimer); trackId = null; phase = 'ready'; inWall = false; boardEl.classList.add('ready'); }
       },
-      onResume: function () { if (phase === 'ready') startLoop(); }
+      onResume: function () {}
     });
 
     window.addEventListener('resize', function () {
-      if (!document.getElementById('play').classList.contains('active')) return;
-      layout(); draw();
+      if (document.getElementById('play').classList.contains('active')) layout();
     });
 
     players = HG.getPlayers();
     if (!players.length) players = ['Player 1'];
-    HG.shell.begin(['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp'], newRound);
+    HG.shell.begin(['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp', PATHS[0].art, PATHS[0].mask, TOOL.art, TOOL.mask], newRound);
   </script>
 </body>
 </html>

@@ -16,8 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Alan+Sans:wght@900&family=Inter+Tight:wght@400;500;700;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../../shared.css">
   <style>
-    /* Connect 4 · logic: wireframes board 05 (65:289) + 0. Claude/Connect4_Wireframe_Brief.md
-       · look: Design UI section CONNECT 4 (268:2036), Connect4_00–13. */
+    /* Connect 4 · logic: 0. Claude/Connect4_Wireframe_Brief.md (v03, one round, everyone plays once)
+       · look: Design UI - 02 section CONNECT 4 (268:2036), Connect4_00–09. */
     * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
     html, body { width:100%; height:100%; overflow:hidden; color:#fff; }
     .screen { display:none; position:absolute; inset:0; flex-direction:column; align-items:center; }
@@ -25,71 +25,81 @@
     .stack { justify-content:center; gap:16px; padding:22px 20px 24px; text-align:center; }
     .stack > .hg-btn:first-of-type { margin-top:auto; }
     .tok { width:44px; height:44px; display:block; }
-    .note { font-family:var(--f-body); font-size:13px; color:#fff; }
+    .note { font-family:var(--f-body); font-size:14px; color:#fff; }
     .shout { font-family:var(--f-display); font-weight:900; font-size:30px; line-height:1.1; color:#fff; text-transform:uppercase;
       -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; }
+    .shout.xl { font-size:42px; -webkit-text-stroke:8px var(--dark-blue); }
 
-    /* C1 / C6 bracket */
-    .drawcard { gap:8px; text-align:left; }
-    .drawcard .hg-card-title { font-size:34px; text-align:left; }
-    .lbl { font-family:var(--f-display); font-weight:900; font-size:12px; letter-spacing:0.5px; text-transform:uppercase; margin-top:6px; }
-    .match { display:flex; align-items:center; gap:8px; height:40px; padding:0 16px; border-radius:20px; background:var(--dark-blue); color:#fff; }
-    .match .n { flex:1; min-width:0; font-family:var(--f-display); font-weight:900; font-size:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .match .n:last-child, .match .n.r { text-align:right; }
-    .match .v { font-family:var(--f-body); font-size:11px; opacity:0.6; }
-    .match.bye { background:rgba(0,31,59,0.55); }
-    .match.bye .v { opacity:1; font-size:12px; }
-    .match.next { background:var(--light-blue); color:var(--dark-blue); border:3px solid var(--dark-blue); height:48px; }
-    .match .next-tag { background:var(--dark-blue); color:#fff; font-family:var(--f-display); font-weight:900; font-size:11px; padding:4px 10px; border-radius:12px; }
-    .match .check { width:22px; height:22px; border-radius:50%; background:var(--green); color:var(--dark-blue); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:900; flex-shrink:0; }
-    .match .beat { font-family:var(--f-body); font-size:11px; opacity:0.7; flex:1; }
-    .match .plus { font-family:var(--f-ui); font-size:13px; }
-    .muted { font-family:var(--f-body); font-size:13px; opacity:0.7; }
-    .shuffling .n { opacity:0.5; }
-    .bracket { width:100%; max-width:352px; display:flex; flex-direction:column; gap:6px; text-align:left; }
-    .bracket .lbl { color:#fff; }
-    .bracket .info { height:44px; padding:0 16px; border-radius:22px; background:rgba(0,31,59,0.55); color:#fff; display:flex; align-items:center; font-family:var(--f-body); font-size:13px; }
+    /* C1 Matches · C5 Next up: white card, "Match N" label over a dark pill */
+    .mcard { width:100%; max-width:315px; background:#fff; border-radius:32px; padding:24px 16px 20px; display:flex; flex-direction:column; gap:18px; text-align:left; }
+    .mcard-title { font-family:var(--f-display); font-weight:900; font-size:32px; line-height:26px; color:var(--dark-blue); text-transform:uppercase; padding-top:2px; }
+    .mitem { display:flex; flex-direction:column; gap:6px; }
+    .mlabel { font-family:var(--f-ui); font-weight:700; font-size:13px; color:var(--dark-blue); text-align:center; }
+    .match { display:flex; align-items:center; gap:8px; height:39px; padding:0 16px; border-radius:20px; background:var(--dark-blue); color:#fff; }
+    .match .n { flex:1; min-width:0; font-family:var(--f-display); font-weight:900; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .match .n.r { text-align:right; }
+    .match .v { font-family:var(--f-ui); font-size:11px; color:var(--light-blue); }
+    .mcard.shuffling .n { opacity:0.5; }
 
-    /* C2 / C9 versus */
-    .vs { display:flex; align-items:flex-start; justify-content:center; gap:10px; width:100%; max-width:352px; }
-    .side { flex:1; display:flex; flex-direction:column; align-items:center; gap:12px; min-width:0; }
+    /* C2 Next match */
+    .hg-pill { margin-top:60px; }
+    .vs { display:flex; align-items:flex-start; justify-content:center; gap:10px; width:100%; max-width:352px; margin-top:20px; }
+    .side { flex:1; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:0; }
     .side .coin { width:120px; height:120px; display:block; }
-    .side .hg-tag { max-width:100%; }
-    .vs-x { font-family:var(--f-display); font-weight:900; font-size:34px; color:#fff; -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; margin-top:40px; }
+    .side .hg-tag { max-width:100%; padding:6px 16px; }
+    .vs-x { font-family:var(--f-display); font-weight:900; font-size:34px; color:#fff; -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; margin-top:44px; }
     .cpu { width:120px; height:120px; border-radius:30px; background:var(--dark-blue); display:flex; align-items:center; justify-content:center; font-size:64px; }
+    #next .shout { margin-top:30px; }
 
-    /* C3 match */
-    #match { padding:15px 20px 12px; gap:6px; }
-    .ring { position:absolute; left:176px; top:31px; width:80px; height:80px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; }
-    .ring img { width:72px; height:72px; }
-    .ring .cpuface { font-size:40px; }
-    .hg-banner-body { right:180px; }
-    .meta { position:absolute; right:16px; top:56px; text-align:right; color:var(--dark-blue); }
-    .meta b { display:block; font-family:var(--f-display); font-weight:900; font-size:14px; }
-    .meta span { font-family:var(--f-body); font-size:12px; }
+    /* C3 Match: players row, turn banner, board */
+    #match { padding:21px 12px 0; }
+    .players { width:100%; max-width:366px; display:flex; align-items:center; justify-content:space-between; gap:6px; flex-shrink:0; }
+    .ptag { width:144px; min-width:0; display:flex; align-items:center; justify-content:space-between; gap:6px; height:38px; padding:4px 4px 4px 12px; border-radius:32px;
+      background:var(--dark-blue); border:4px solid transparent; opacity:0.6; transition:opacity .2s, border-color .2s; }
+    .ptag.r { flex-direction:row-reverse; padding:4px 12px 4px 4px; }
+    .ptag b { font-family:var(--f-display); font-weight:900; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .ptag img, .ptag .cpuface { width:22px; height:22px; flex-shrink:0; font-size:18px; line-height:22px; text-align:center; }
+    .ptag.on { opacity:1; }
+    .ptag.on.y { border-color:var(--yellow); }
+    .ptag.on.rd { border-color:var(--red); }
+    .mid { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+    .mid .vsx { font-family:var(--f-display); font-weight:900; font-size:22px; color:#fff; background:var(--dark-blue); border-radius:16px; padding:2px 8px; }
+    .mid .lbl { font-family:var(--f-display); font-weight:900; font-size:13px; margin-top:4px; white-space:nowrap; }
+    .turnbar { width:100%; max-width:366px; min-height:46px; margin-top:12px; flex-shrink:0; border-radius:32px; background:var(--dark-blue); border:4px solid transparent;
+      display:flex; align-items:center; justify-content:center; gap:20px; padding:4px 16px; font-family:var(--f-display); font-weight:900; font-size:18px; text-transform:uppercase; }
+    .turnbar svg { width:31px; height:22px; flex-shrink:0; }
+    .turnbar.y { border-color:var(--yellow); } .turnbar.y svg { color:var(--yellow); transform:scaleX(-1); }
+    .turnbar.rd { border-color:var(--red); } .turnbar.rd svg { color:var(--red); }
+    .turnbar .sp { width:31px; flex-shrink:0; }
+    .turnbar.big { min-height:73px; font-size:22px; }
     .boardbox { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; touch-action:none; min-height:0; }
-    .boardinner { --w: min(350px, 92vw); width:var(--w); position:relative; }
-    .ghostrow { display:grid; grid-template-columns:repeat(7,1fr); height:calc((var(--w) - 26px) / 7 + 6px); padding:0 13px; }
-    .ghost { display:flex; align-items:center; justify-content:center; }
-    .ghost img { width:84%; opacity:0.6; }
+    .boardinner { --w: min(356px, 92vw, calc((100vh - 290px) * 356 / 362)); width:var(--w); position:relative; }
+    .ghostrow { position:relative; height:calc(var(--w) * 54 / 356); }
+    .ghost { position:absolute; top:0; width:calc(var(--w) * 48 / 356); height:calc(var(--w) * 48 / 356); display:flex; align-items:center; justify-content:center; }
+    .ghost img { width:100%; opacity:0.6; }
     .ghost.full img { opacity:1; width:62%; }
-    .board { position:relative; display:grid; grid-template-columns:repeat(7,1fr); gap:5px; padding:9px; border-radius:32px; border:4px solid #fff; background:var(--bright-blue); }
-    .colhl { position:absolute; top:6px; bottom:6px; border-radius:25px; background:rgba(255,255,255,0.3); display:none; pointer-events:none; }
-    .cell { aspect-ratio:1/1; border-radius:50%; background:var(--dark-blue); position:relative; z-index:1; }
+    .colhl { position:absolute; top:0; bottom:calc(var(--w) * 8 / 356); width:calc(var(--w) * 50 / 356); border-radius:26px; background:rgba(255,255,255,0.3); display:none; pointer-events:none; z-index:2; }
+    .board { position:relative; width:var(--w); aspect-ratio:356 / 308; background:url('assets/board.svg') center / 100% 100% no-repeat; }
+    .cell { position:absolute; width:calc(var(--w) * 46 / 356); height:calc(var(--w) * 46 / 356); transform:translate(-50%, -50%); border-radius:50%; }
     .cell img { width:100%; height:100%; display:block; pointer-events:none; }
     .cell img.falling { animation:fall var(--dur) cubic-bezier(0.5,0,0.75,0.4) both; }
     @keyframes fall { from { transform:translateY(var(--from)); } to { transform:translateY(0); } }
-    .board.dim .cell { opacity:0.35; }
-    .board.dim .cell.win { opacity:1; box-shadow:0 0 0 4px #fff; animation:win 0.6s ease-in-out infinite alternate; }
-    @keyframes win { from { transform:scale(1); } to { transform:scale(1.1); } }
-    .board.drawn { opacity:0.5; }
-    .boardnote { font-family:var(--f-body); font-size:13px; color:#fff; margin-top:12px; min-height:18px; }
+    .board.dim .cell img { opacity:0.35; }
+    .board.dim .cell.win img { opacity:1; }
+    .board.dim .cell.win { box-shadow:0 0 0 4px var(--wc, #fff); animation:win 0.6s ease-in-out infinite alternate; }
+    @keyframes win { from { transform:translate(-50%, -50%) scale(1); } to { transform:translate(-50%, -50%) scale(1.1); } }
+    .boardnote { font-family:var(--f-ui); font-size:14px; color:#fff; margin:14px 0 20px; min-height:18px; }
 
-    /* C5 / C11 winner card */
-    .wincard { width:100%; max-width:352px; border-radius:40px; background:var(--dark-blue); padding:26px 20px 30px; display:flex; flex-direction:column; align-items:center; gap:8px; }
-    .wincard .coin { width:130px; height:130px; margin-bottom:8px; }
-    .wincard .small { font-family:var(--f-display); font-weight:900; font-size:18px; text-transform:uppercase; }
-    .wincard .big { font-family:var(--f-display); font-weight:900; font-size:46px; line-height:1; text-transform:uppercase; }
+    /* C5 Match result */
+    #won { justify-content:flex-start; padding-top:56px; }
+    .scores { width:100%; max-width:299px; display:flex; flex-direction:column; gap:8px; margin-top:18px; }
+    .scores .hg-tag { width:100%; padding:8px 16px 8px 8px; }
+    .scores .hg-tag .hg-tag-txt { flex:1; }
+    .scores .hg-tag-name { font-size:26px; }
+    .scores .plus { font-family:var(--f-ui); font-weight:900; font-size:16px; white-space:nowrap; }
+    .scores .plus small { font-weight:400; font-size:11px; margin-left:4px; }
+    #won .mcard { margin-top:auto; }
+    #won .mcard + .hg-btn { margin-top:24px; }
   </style>
 </head>
 <body>
@@ -99,29 +109,24 @@
   <!-- End Google Tag Manager (noscript) -->
   <div class="hg-body">
     <div id="draw" class="screen stack hg-scroll"></div>      <!-- C1 -->
-    <div id="next" class="screen stack"></div>                <!-- C2 / C9 -->
+    <div id="next" class="screen stack"></div>                <!-- C2 -->
     <div id="match" class="screen">                           <!-- C3 / C3b / C4 / C10 -->
-      <div class="hg-banner" id="banner">
-        <div class="hg-banner-bg"></div>
-        <div class="hg-tag"><div class="hg-tag-name" id="who"></div></div>
-        <div class="hg-banner-body">
-          <div class="hg-banner-title" id="turnTitle"></div>
-          <div class="hg-banner-sub" id="turnSub"></div>
-        </div>
-        <div class="ring" id="ring"></div>
-        <div class="meta" id="meta"></div>
+      <div class="players">
+        <div class="ptag y" id="pY"></div>
+        <div class="mid"><div class="vsx">VS</div><div class="lbl" id="mlabel"></div></div>
+        <div class="ptag r rd" id="pR"></div>
       </div>
+      <div class="turnbar" id="turnbar"></div>
       <div class="boardbox" id="boardbox">
-        <div class="boardinner">
+        <div class="boardinner" id="boardinner">
+          <div class="colhl" id="colhl"></div>
           <div class="ghostrow" id="ghostrow"></div>
-          <div class="board" id="board"><div class="colhl" id="colhl"></div></div>
+          <div class="board" id="board"></div>
         </div>
         <div class="boardnote" id="boardnote"></div>
       </div>
     </div>
-    <div id="won" class="screen stack hg-scroll"></div>       <!-- C5 / C8 / C11 -->
-    <div id="bracket" class="screen stack hg-scroll"></div>   <!-- C6 -->
-    <div id="champ" class="screen stack hg-scroll"></div>     <!-- C7 -->
+    <div id="won" class="screen stack hg-scroll"></div>       <!-- C5 / C8 -->
     <div id="lb" class="screen stack hg-scroll"></div>        <!-- G3 -->
   </div>
 
@@ -131,15 +136,16 @@
     var Y = 1, R = 2;                       // Yellow always starts
     var IMG = { 1: 'assets/token-yellow.webp', 2: 'assets/token-red.webp' };
     var CPU = 'Computer';
+    // Board art (assets/board.svg, 356 × 308): hole centres at 34 + 48 × n.
+    var BW = 356, BH = 308, HOLE0 = 34, PITCH = 48;
+    var ARROW = '<svg viewBox="0 0 31 22" aria-hidden="true"><path fill="currentColor" d="M17.59.88a3 3 0 0 0 0 4.24L20.53 8H3.07a3 3 0 1 0 0 6h17.46l-2.94 2.88a3 3 0 0 0 4.34 4.24l8.17-8a3 3 0 0 0 0-4.24l-8.17-8a3 3 0 0 0-4.34 0Z"/></svg>';
     var el = HG.el, clear = HG.clear, tap = HG.onTap;
 
-    // ── Tournament state ──
-    var players = [], solo = false, drawOrder = [], rounds = [], totalRounds = 1, roundIdx = 0, matchIdx = 0;
-    var stats = {};           // name → { out: round lost in (or totalRounds+1), wonMoves: [], lastMoves, byes }
-    var committed = false, anyDrop = false;
+    // ── Round state: random pairs, everyone plays exactly one match; the odd one out plays the computer ──
+    var players = [], matches = [], mi = 0, results = {}, committed = false, anyDrop = false;
     // ── Match state ──
     var board = [], turnColor = Y, yellow = null, red = null, busy = false, over = false, moves = {};
-    var aim = -1, aimPointer = null, cpuTimer = null;
+    var aim = -1, aimPointer = null, cpuTimer = null, cpuInMatch = false;
 
     function screen(id) {
       document.querySelectorAll('.screen').forEach(function (s) { s.classList.remove('active'); });
@@ -147,74 +153,44 @@
     }
     function tok(color, cls) { var i = el('img', cls || 'tok'); i.src = IMG[color]; i.alt = color === Y ? 'Yellow' : 'Red'; return i; }
     function btn(text, cls, fn) { var b = el('button', 'hg-btn ' + cls, text); tap(b, fn); return b; }
-    function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+    function matchLabel(i) { return 'Match ' + (i + 1) + ' of ' + matches.length; }
 
-    // ── Start ──
+    // ── Start: random pairs = play order. 1 player → one match vs the computer ──
     function start() {
       players = HG.getPlayers(); if (!players.length) players = ['Player 1'];
-      solo = players.length === 1;
-      committed = false; anyDrop = false; stats = {};
-      players.concat(solo ? [CPU] : []).forEach(function (n) { stats[n] = { out: 0, wonMoves: [], lastMoves: 0, byes: 0 }; });
-      if (solo) return showSolo();
-      totalRounds = Math.ceil(Math.log2(players.length));
-      drawOrder = HG.shuffle(players);     // random bracket, drawn once
-      rounds = []; roundIdx = 0; matchIdx = 0;
-      makeRound(drawOrder.slice());
+      committed = false; anyDrop = false; results = {}; mi = 0;
+      var d = HG.shuffle(players); matches = [];
+      for (var i = 0; i < d.length; i += 2) matches.push({ a: d[i], b: d[i + 1] || CPU });
+      if (players.length === 1) return showNext();
       showDraw();
     }
 
-    // Pair a round. Odd count → one bye, random among those with the fewest byes.
-    function makeRound(names) {
-      var bye = null;
-      if (names.length % 2) {
-        var least = Math.min.apply(null, names.map(function (n) { return stats[n].byes; }));
-        var pool = names.filter(function (n) { return stats[n].byes === least; });
-        bye = pool[Math.floor(Math.random() * pool.length)];
-        stats[bye].byes++;
-        names = names.filter(function (n) { return n !== bye; });
-      }
-      var matches = [];
-      for (var i = 0; i < names.length; i += 2) matches.push({ a: names[i], b: names[i + 1], winner: null, loser: null });
-      rounds.push({ matches: matches, bye: bye });
-    }
-    function roundName(i) { return i === totalRounds - 1 ? 'Final' : 'Round ' + (i + 1); }
-    function nextRoundName(i) { return i + 1 === totalRounds - 1 ? 'the final' : 'round ' + (i + 2); }
-    function throughOf(round) {
-      var out = round.matches.filter(function (m) { return m.winner; }).map(function (m) { return m.winner; });
-      if (round.bye) out.push(round.bye);
-      return out;
-    }
-    function matchRow(a, b, extraCls) {
-      var row = el('div', 'match' + (extraCls ? ' ' + extraCls : ''));
+    function matchRow(a, b) {
+      var row = el('div', 'match');
       var na = el('span', 'n', a), nb = el('span', 'n r', b);
       row.appendChild(na); row.appendChild(el('span', 'v', 'vs')); row.appendChild(nb);
       return { row: row, a: na, b: nb };
     }
+    function matchItem(i, label) {
+      var it = el('div', 'mitem');
+      it.appendChild(el('div', 'mlabel', label || 'Match ' + (i + 1)));
+      var mr = matchRow(matches[i].a, matches[i].b); it.appendChild(mr.row);
+      return { item: it, a: mr.a, b: mr.b };
+    }
 
-    // ── C1 · The draw ──
+    // ── C1 · Matches (the draw) ──
     function showDraw() {
       var c = document.getElementById('draw'); clear(c);
-      var card = el('div', 'hg-card drawcard shuffling');
-      card.appendChild(el('div', 'hg-card-title', 'The draw'));
-      card.appendChild(el('div', 'hg-sub', 'Random, and final. Good luck!'));
-      card.appendChild(el('div', 'lbl', roundName(0)));
-      var r0 = rounds[0], names = [];
-      r0.matches.forEach(function (m) {
-        var mr = matchRow(m.a, m.b); names.push([mr.a, m.a], [mr.b, m.b]); card.appendChild(mr.row);
+      var card = el('div', 'mcard shuffling');
+      card.appendChild(el('div', 'mcard-title', 'Matches'));
+      var names = [];
+      matches.forEach(function (m, i) {
+        var it = matchItem(i); names.push([it.a, m.a]); if (m.b !== CPU) names.push([it.b, m.b]);
+        card.appendChild(it.item);
       });
-      if (r0.bye) {
-        var row = el('div', 'match bye'), n = el('span', 'n', r0.bye);
-        row.appendChild(n); row.appendChild(el('span', 'v', 'Straight to ' + nextRoundName(0)));
-        names.push([n, r0.bye]); card.appendChild(row);
-      }
-      if (totalRounds > 1) {
-        card.appendChild(el('div', 'lbl', totalRounds > 2 ? 'Round 2 … Final' : 'Round 2 · Final'));
-        card.appendChild(el('div', 'muted', 'Drawn as the rounds finish'));
-      }
       c.appendChild(card);
-      var skip = el('div', 'note', 'Tap to skip the animation'); c.appendChild(skip);
-      c.appendChild(btn('Start match 1', 'hg-btn-primary', function () { stopShuffle(); matchIdx = 0; showNext(); }));
-      // Name chips shuffle, then drop into their slots (≈ 1.5 s, tap skips).
+      c.appendChild(btn('Start match 1', 'hg-btn-primary', function () { stopShuffle(); showNext(); }));
+      // Name chips shuffle, then settle into their pairs (≈ 1.5 s, tap skips).
       var t0 = performance.now(), iv = setInterval(function () {
         if (performance.now() - t0 > 1500) return stopShuffle();
         names.forEach(function (p) { p[0].textContent = players[Math.floor(Math.random() * players.length)]; });
@@ -222,91 +198,99 @@
       function stopShuffle() {
         clearInterval(iv); card.classList.remove('shuffling');
         names.forEach(function (p) { p[0].textContent = p[1]; });
-        skip.style.visibility = 'hidden';
       }
       tap(card, stopShuffle);
       screen('draw');
     }
 
-    // ── C2 · Next match ──
-    function currentMatch() { return rounds[roundIdx].matches[matchIdx]; }
-    function showNext() {
-      var m = currentMatch();
-      if (Math.random() < 0.5) { yellow = m.a; red = m.b; } else { yellow = m.b; red = m.a; }   // colours drawn per match
+    // ── C2 · Next match: colours drawn per match; vs the computer the player is Yellow ──
+    function showNext(keepColours) {
+      var m = matches[mi];
+      if (!keepColours) {
+        if (m.b === CPU || Math.random() < 0.5) { yellow = m.a; red = m.b; } else { yellow = m.b; red = m.a; }
+      }
       var c = document.getElementById('next'); clear(c);
-      var rName = roundName(roundIdx);
-      c.appendChild(el('div', 'hg-pill', rName === 'Final' ? 'Final' : rName + '  ·  Match ' + (matchIdx + 1) + ' of ' + rounds[roundIdx].matches.length));
+      c.appendChild(el('div', 'hg-pill', matchLabel(mi)));
       c.appendChild(versus(yellow, red));
-      c.appendChild(el('div', 'shout', yellow + ' is yellow and starts!'));
-      c.appendChild(el('div', 'note', 'Put the phone flat between you'));
+      c.appendChild(el('div', 'shout', (yellow === CPU ? 'The computer' : yellow) + ' starts!'));
+      c.appendChild(el('div', 'note', red === CPU ? 'Beat the computer for up to 100 pts' : 'Put the phone flat between you'));
       c.appendChild(btn('Play', 'hg-btn-primary', startMatch));
       screen('next');
+    }
+    function side(name, color) {
+      var s = el('div', 'side');
+      if (name === CPU) s.appendChild(el('div', 'cpu', '🤖')); else s.appendChild(tok(color, 'coin'));
+      s.appendChild(HG.tag(name));
+      return s;
     }
     function versus(y, r) {
       var row = el('div', 'vs');
-      var a = el('div', 'side'); a.appendChild(tok(Y, 'coin')); a.appendChild(HG.tag(y));
-      var b = el('div', 'side');
-      if (r === CPU) b.appendChild(el('div', 'cpu', '🤖')); else b.appendChild(tok(R, 'coin'));
-      b.appendChild(HG.tag(r));
-      row.appendChild(a); row.appendChild(el('div', 'vs-x', 'VS')); row.appendChild(b);
+      row.appendChild(side(y, Y)); row.appendChild(el('div', 'vs-x', 'VS')); row.appendChild(side(r, R));
       return row;
-    }
-
-    // ── C9 · Solo ──
-    function showSolo() {
-      yellow = players[0]; red = CPU;     // the player is always Yellow and starts
-      var c = document.getElementById('next'); clear(c);
-      c.appendChild(el('div', 'hg-pill', 'Solo'));
-      c.appendChild(versus(yellow, red));
-      c.appendChild(el('div', 'shout', 'You start!'));
-      c.appendChild(el('div', 'note', 'Beat the computer for up to 100 pts'));
-      c.appendChild(btn('Play', 'hg-btn-primary', startMatch));
-      screen('next');
     }
 
     // ── C3 · Match ──
     var boardEl = document.getElementById('board'), ghostEl = document.getElementById('ghostrow'), hl = document.getElementById('colhl');
+    function holeX(c) { return (HOLE0 + PITCH * c) / BW * 100; }
+    function holeY(r) { return (HOLE0 + PITCH * r) / BH * 100; }
     function startMatch() {
       board = []; for (var r = 0; r < ROWS; r++) { board.push([0, 0, 0, 0, 0, 0, 0]); }
       turnColor = Y; busy = false; over = false; aim = -1; aimPointer = null;
+      cpuInMatch = yellow === CPU || red === CPU;
       moves = {}; moves[yellow] = 0; moves[red] = 0;
-      Array.prototype.slice.call(boardEl.querySelectorAll('.cell')).forEach(function (n) { n.remove(); });
-      boardEl.className = 'board';
-      for (var i = 0; i < ROWS * COLS; i++) boardEl.appendChild(el('div', 'cell'));
-      clear(ghostEl); for (var c = 0; c < COLS; c++) ghostEl.appendChild(el('div', 'ghost'));
+      clear(boardEl); boardEl.className = 'board';
+      for (var i = 0; i < ROWS * COLS; i++) {
+        var cell = el('div', 'cell');
+        cell.style.left = holeX(i % COLS) + '%'; cell.style.top = holeY(Math.floor(i / COLS)) + '%';
+        boardEl.appendChild(cell);
+      }
+      clear(ghostEl);
+      for (var c = 0; c < COLS; c++) {
+        var g = el('div', 'ghost'); g.style.left = ((HOLE0 - 24 + PITCH * c) / BW * 100) + '%'; ghostEl.appendChild(g);
+      }
+      renderPlayers();
+      document.getElementById('mlabel').textContent = matchLabel(mi);
       document.getElementById('boardnote').textContent = 'Tap anywhere in a column';
       screen('match');
       nextTurn();
     }
     function nameOf(color) { return color === Y ? yellow : red; }
-    function cellEl(r, c) { return boardEl.querySelectorAll('.cell')[r * COLS + c]; }
-    function isCpuTurn() { return solo && nameOf(turnColor) === CPU; }
+    function cellEl(r, c) { return boardEl.children[r * COLS + c]; }
+    function isCpuTurn() { return nameOf(turnColor) === CPU; }
 
-    function renderBanner(title, sub) {
-      var who = nameOf(turnColor);
-      document.getElementById('who').textContent = who;
-      var t = document.getElementById('turnTitle'); clear(t);
-      t.appendChild(document.createTextNode(title));
-      document.getElementById('turnSub').textContent = sub;
-      var ring = document.getElementById('ring'); clear(ring);
-      if (who === CPU) ring.appendChild(el('span', 'cpuface', '🤖')); else ring.appendChild(tok(turnColor));
-      var meta = document.getElementById('meta'); clear(meta);
-      meta.appendChild(el('b', null, solo ? 'Solo' : roundName(roundIdx)));
-      meta.appendChild(el('span', null, 'vs ' + nameOf(turnColor === Y ? R : Y)));
+    function renderPlayers() {
+      [[Y, 'pY', yellow], [R, 'pR', red]].forEach(function (p) {
+        var t = document.getElementById(p[1]); clear(t);
+        t.appendChild(el('b', null, p[2]));
+        if (p[2] === CPU) t.appendChild(el('span', 'cpuface', '🤖')); else t.appendChild(tok(p[0]));
+      });
+    }
+    // Turn banner: arrow points at the active player's tag (Yellow left, Red right).
+    function renderTurn(text, big) {
+      document.getElementById('pY').classList.toggle('on', turnColor === Y || big === 'draw');
+      document.getElementById('pR').classList.toggle('on', turnColor === R || big === 'draw');
+      var b = document.getElementById('turnbar'); clear(b);
+      b.className = 'turnbar' + (big === 'draw' ? '' : turnColor === Y ? ' y' : ' rd') + (big ? ' big' : '');
+      if (big) { b.appendChild(document.createTextNode(text)); return; }
+      var arrow = el('span'); arrow.innerHTML = ARROW;
+      var sp = el('span', 'sp');
+      b.appendChild(turnColor === Y ? arrow.firstChild : sp);
+      b.appendChild(el('span', null, text));
+      b.appendChild(turnColor === Y ? sp : arrow.firstChild);
     }
 
     function nextTurn() {
       clearGhost();
-      if (isCpuTurn()) { renderBanner('Thinking…', 'Wait for your turn'); cpuThink(); }
-      else renderBanner('Your turn →', 'Tap a column');
+      if (isCpuTurn()) { renderTurn('Computer is thinking…'); cpuThink(); }
+      else renderTurn(turnColor === Y ? "Yellow's turn" : "Red's turn");
     }
 
     // ── C3b · Aiming: ghost on touch-down, slide to change column, release drops, release off the board cancels ──
     var box = document.getElementById('boardbox');
     function colAt(x) {
-      var r = boardEl.getBoundingClientRect();
+      var r = boardEl.getBoundingClientRect(), u = r.width / BW;
       if (x < r.left || x > r.right) return -1;
-      return Math.max(0, Math.min(COLS - 1, Math.floor((x - r.left - 13) / ((r.width - 26) / COLS))));
+      return Math.max(0, Math.min(COLS - 1, Math.floor((x - r.left - (HOLE0 - PITCH / 2) * u) / (PITCH * u))));
     }
     function onBoard(x, y) {
       var r = boardEl.getBoundingClientRect(), g = ghostEl.getBoundingClientRect();
@@ -319,11 +303,11 @@
       var g = ghostEl.children[c];
       if (topRow(c) < 0) { g.classList.add('full'); var x = el('img'); x.src = '../../assets/ui/icon-close.svg'; x.alt = 'Full'; g.appendChild(x); }
       else g.appendChild(tok(color));
-      var cell = cellEl(0, c), br = boardEl.getBoundingClientRect(), cr = cell.getBoundingClientRect();
-      hl.style.left = (cr.left - br.left - 4) + 'px'; hl.style.width = (cr.width + 8) + 'px'; hl.style.display = 'block';
+      var inner = document.getElementById('boardinner').getBoundingClientRect(), u = inner.width / BW;
+      hl.style.left = ((HOLE0 - 25 + PITCH * c) * u) + 'px'; hl.style.display = 'block';
     }
     function clearGhost() {
-      for (var i = 0; i < ghostEl.children.length; i++) { clear(ghostEl.children[i]); ghostEl.children[i].className = 'ghost'; }
+      for (var i = 0; i < ghostEl.children.length; i++) { clear(ghostEl.children[i]); ghostEl.children[i].classList.remove('full'); }
       hl.style.display = 'none';
     }
 
@@ -333,7 +317,7 @@
       aimPointer = e.pointerId;
       try { box.setPointerCapture(e.pointerId); } catch (x) {}
       aim = colAt(e.clientX); showGhost(aim, turnColor);
-      document.getElementById('turnSub').textContent = 'Release to drop';
+      document.getElementById('boardnote').textContent = 'Release to drop';
     });
     box.addEventListener('pointermove', function (e) {
       if (e.pointerId !== aimPointer) return;
@@ -346,7 +330,7 @@
       var c = (!cancel && onBoard(e.clientX, e.clientY)) ? colAt(e.clientX) : -1;
       clearGhost();
       if (!canPlay()) return;
-      document.getElementById('turnSub').textContent = 'Tap a column';
+      document.getElementById('boardnote').textContent = 'Tap anywhere in a column';
       if (c < 0) return;                         // released off the board = cancel
       if (topRow(c) < 0) return refuseFull(c);
       drop(c);
@@ -367,8 +351,8 @@
       busy = true; anyDrop = true;
       board[r][c] = turnColor; moves[nameOf(turnColor)]++;
       var cell = cellEl(r, c), img = tok(turnColor, 'falling');
-      var h = cell.getBoundingClientRect().height + 5;
-      img.style.setProperty('--from', (-(r + 1) * h - 10) + 'px');
+      var u = boardEl.getBoundingClientRect().height / BH;
+      img.style.setProperty('--from', (-(HOLE0 + PITCH * r + 40) * u) + 'px');
       img.style.setProperty('--dur', '300ms');                            // drop ≈ 300 ms, input locked
       cell.appendChild(img);
       HG.play('drop');
@@ -400,10 +384,11 @@
     // ── C4 · Four in a row (≈ 1.2 s, tap skips) ──
     function fourInARow(line) {
       over = true;
+      boardEl.style.setProperty('--wc', turnColor === Y ? 'var(--yellow)' : 'var(--red)');
       line.forEach(function (p) { cellEl(p[0], p[1]).classList.add('win'); });
       boardEl.classList.add('dim');
       var w = nameOf(turnColor);
-      renderBanner(w === CPU ? 'Computer wins' : 'Connect 4!', 'Tap to continue');
+      renderTurn(turnColor === Y ? 'Yellow connects 4!' : 'Red connects 4!', 'win');
       document.getElementById('boardnote').textContent = '';
       HG.play('success');
       var done = false;
@@ -412,18 +397,21 @@
       setTimeout(go, 1200);
     }
 
-    // ── C8 · Draw → replay, colours swapped (the other player starts) ──
+    // ── C8 · Draw → replay, colours swapped (the other player starts). No points. ──
     function drawGame() {
       over = true;
-      boardEl.classList.add('drawn');
-      var c = document.getElementById('won'); clear(c);
-      var tmp = yellow; yellow = red; red = tmp;
-      c.appendChild(el('div', 'hg-title shadow', "It's a draw!"));
-      c.appendChild(el('div', 'note', 'Play it again. Colours swap:'));
-      c.appendChild(versus(yellow, red));
-      c.appendChild(el('div', 'shout', (yellow === CPU ? 'The computer' : yellow) + ' is yellow and starts!'));
-      c.appendChild(btn('Replay', 'hg-btn-primary', startMatch));
-      setTimeout(function () { screen('won'); }, 900);
+      renderTurn("It's a draw!", 'draw');
+      document.getElementById('boardnote').textContent = '';
+      setTimeout(function () {
+        var tmp = yellow; yellow = red; red = tmp;
+        var c = document.getElementById('won'); clear(c);
+        c.appendChild(el('div', 'shout xl', 'Draw!'));
+        c.appendChild(el('div', 'note', 'Play it again. Colours swap:'));
+        c.appendChild(versus(yellow, red));
+        c.appendChild(el('div', 'shout', (yellow === CPU ? 'The computer' : yellow) + ' starts!'));
+        c.appendChild(btn('Replay', 'hg-btn-primary', startMatch));
+        screen('won');
+      }, 1200);
     }
 
     // ── Computer (one level, beatable): win → block → avoid giving a win above → centre; ~20 % random ──
@@ -459,123 +447,46 @@
       return pool[0];
     }
 
-    // ── Points ──
-    var MIN_M = 4, MAX_M = 21;
-    function fast(m) { return Math.max(0, Math.min(1, (MAX_M - m) / (MAX_M - MIN_M))); }
-    function heldOut(m) { return Math.max(0, Math.min(1, (m - MIN_M) / (MAX_M - MIN_M))); }
-    function placement(out) { return out > totalRounds ? 80 : 20 + 60 * (out - 1) / totalRounds; }
-    function pointsOf(n) {
-      var s = stats[n];
-      if (s.out > totalRounds) {
-        var avg = s.wonMoves.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, s.wonMoves.length);
-        return 80 + 20 * fast(avg);
-      }
-      return placement(s.out) + 15 * heldOut(s.lastMoves);
-    }
+    // ── Points (Global points system): m = own tokens dropped in the deciding game ──
+    function winPts(m) { return 70 + 30 * Math.max(0, Math.min(1, (21 - m) / (21 - 4))); }
+    function lossPts(m) { return 10 + 30 * Math.max(0, Math.min(1, (m - 3) / (21 - 3))); }
 
-    // ── C5 · Match won ──
+    // ── C5 · Match result + Next up ──
     function matchOver(w, l) {
-      stats[w].wonMoves.push(moves[w]); stats[w].lastMoves = moves[w];
-      stats[l].lastMoves = moves[l];
-      if (solo) return soloResult(w === players[0]);
-      var m = currentMatch(); m.winner = w; m.loser = l;
-      stats[l].out = roundIdx + 1;
-      if (roundIdx === totalRounds - 1) { stats[w].out = totalRounds + 1; return showChampion(w); }
+      if (w !== CPU) results[w] = { won: true, m: moves[w], pts: winPts(moves[w]) };
+      if (l !== CPU) results[l] = { won: false, m: moves[l], pts: lossPts(moves[l]) };
+      var last = mi === matches.length - 1;
       var c = document.getElementById('won'); clear(c);
-      HG.confetti();
-      c.appendChild(el('div', 'hg-title shadow', w + ' wins!'));
-      var card = el('div', 'wincard');
-      card.appendChild(tok(w === yellow ? Y : R, 'coin'));
-      card.appendChild(el('div', 'small', 'Goes through to'));
-      card.appendChild(el('div', 'big', nextRoundName(roundIdx)));
-      c.appendChild(card);
-      c.appendChild(el('div', 'note', l + ' is out. Well played!'));
-      c.appendChild(btn('See the bracket', 'hg-btn-primary', advance));
+      if (w !== CPU) HG.confetti();
+      c.appendChild(el('div', 'shout xl', w === CPU ? 'Computer wins!' : w + ' wins!'));
+      var sc = el('div', 'scores');
+      [w, l].forEach(function (n) {
+        if (n === CPU) return;
+        var t = HG.tag(n, { big: true }), plus = el('div', 'plus', '+' + Math.round(results[n].pts));
+        plus.appendChild(el('small', null, HG.t('pts'))); t.appendChild(plus); sc.appendChild(t);
+      });
+      c.appendChild(sc);
+      if (!last) {
+        mi++;
+        var card = el('div', 'mcard');
+        card.appendChild(el('div', 'mcard-title', 'Next up'));
+        card.appendChild(matchItem(mi).item);
+        c.appendChild(card);
+        c.appendChild(btn('Next match', 'hg-btn-primary', function () { showNext(); }));
+      } else {
+        commit();
+        c.appendChild(btn(HG.t('next'), 'hg-btn-primary', showLb));
+      }
       screen('won');
     }
-    function advance() {
-      matchIdx++;
-      if (matchIdx >= rounds[roundIdx].matches.length) {
-        makeRound(throughOf(rounds[roundIdx]));     // later rounds are drawn as the rounds finish
-        roundIdx++; matchIdx = 0;
-      }
-      showBracket();
-    }
 
-    // ── C6 · Bracket ──
-    function showBracket() {
-      var c = document.getElementById('bracket'); clear(c);
-      c.appendChild(el('div', 'hg-titlebar', 'Bracket'));
-      var list = el('div', 'bracket'); c.appendChild(list);
-      rounds.forEach(function (rd, ri) {
-        list.appendChild(el('div', 'lbl', roundName(ri)));
-        rd.matches.forEach(function (m, mi) {
-          if (m.winner) {
-            var row = el('div', 'match');
-            row.appendChild(el('span', 'check', '✓'));
-            var n = el('span', 'n', m.winner); n.style.flex = '0 1 auto'; row.appendChild(n);
-            row.appendChild(el('span', 'beat', 'beat ' + m.loser));
-            list.appendChild(row);
-          } else {
-            var isNext = ri === roundIdx && mi === matchIdx;
-            var mr = matchRow(m.a, m.b, isNext ? 'next' : '');
-            if (isNext) { mr.b.classList.remove('r'); mr.b.style.textAlign = 'left'; mr.row.appendChild(el('span', 'next-tag', 'NEXT')); }
-            list.appendChild(mr.row);
-          }
-        });
-        if (rd.bye) {
-          var b = el('div', 'match bye'); b.appendChild(el('span', 'n', rd.bye));
-          b.appendChild(el('span', 'v', 'Straight to ' + nextRoundName(ri)));
-          list.appendChild(b);
-        }
-      });
-      for (var ri = rounds.length; ri < totalRounds; ri++) {
-        list.appendChild(el('div', 'lbl', roundName(ri)));
-        list.appendChild(el('div', 'info', ri === rounds.length ? 'Through: ' + (throughOf(rounds[ri - 1]).join(', ') || '—') + ' + winners to come' : 'To be played'));
-      }
-      c.appendChild(btn('Next match', 'hg-btn-primary', showNext));
-      screen('bracket');
-    }
-
-    // ── C7 · Champion (scores committed here, once) ──
-    function showChampion(w) {
+    // Scores committed once, after the last match of the round.
+    function commit() {
+      if (committed) return;
       var pts = {};
-      players.forEach(function (n) { pts[n] = pointsOf(n); });
-      if (!committed) { HG.commitRound('connect4', pts); committed = true; }
-      var c = document.getElementById('champ'); clear(c);
-      HG.confetti();
-      c.appendChild(el('div', 'hg-title shadow', 'Champion!'));
-      var list = el('div', 'hg-ranks'); c.appendChild(list);
-      HG.rank(drawOrder, function (a, b) {        // round reached, then points; ties in play order
-        return (stats[b].out - stats[a].out) || (pts[b] - pts[a]);
-      }).forEach(function (r) {
-        var n = r.item, s = stats[n];
-        var stage = s.out > totalRounds ? 'Champion' : s.out === totalRounds ? 'Final' : 'Round ' + s.out;
-        list.appendChild(HG.rankRow(r.place, n, [[null, stage], ['b', String(Math.round(pts[n]))], ['w', 'pts']]));
-      });
-      c.appendChild(btn('Leaderboard', 'hg-btn-primary', showLb));
-      c.appendChild(btn('Play again', 'hg-btn-ghost', start));
-      screen('champ');
+      players.forEach(function (n) { pts[n] = results[n] ? results[n].pts : 0; });
+      HG.commitRound('connect4', pts); committed = true;
     }
-
-    // ── C11 · Solo result ──
-    function soloResult(win) {
-      var me = players[0], s = stats[me];
-      var p = win ? 80 + 20 * fast(s.lastMoves) : 20 + 15 * heldOut(s.lastMoves);
-      if (!committed) { var o = {}; o[me] = p; HG.commitRound('connect4', o); committed = true; }
-      var c = document.getElementById('won'); clear(c);
-      if (win) HG.confetti();
-      c.appendChild(el('div', 'hg-title shadow', win ? 'You win!' : 'Computer wins!'));
-      var card = el('div', 'wincard');
-      card.appendChild(tok(win ? (me === yellow ? Y : R) : (me === yellow ? R : Y), 'coin'));
-      card.appendChild(el('div', 'big', '+' + Math.round(p) + ' pts'));
-      c.appendChild(card);
-      c.appendChild(el('div', 'note', win ? me + ' beat the computer' : 'Well played, ' + me + '! Try again?'));
-      c.appendChild(btn('Rematch', 'hg-btn-primary', start));
-      c.appendChild(btn('Leaderboard', 'hg-btn-ghost', showLb));
-      screen('won');
-    }
-
     function showLb() { screen('lb'); HG.shell.leaderboard(document.getElementById('lb'), start); }
 
     // ── Shell ──
@@ -588,17 +499,17 @@
       howTo: {
         lines: soloAtLoad
           ? ['Take turns dropping a token', 'Tap a column to drop it', 'Line up 4: across, up or diagonal', 'Beat the computer for up to 100 pts', 'A draw? Play it again']
-          : ['Take turns dropping a token', 'Tap a column to drop it', 'Line up 4: across, up or diagonal', 'Win and you go through', 'Quick wins score extra', 'A draw? Play it again'],
+          : ['Take turns dropping a token', 'Tap a column to drop it', 'Line up 4: across, up or diagonal', 'Everyone plays one match', 'Quick wins score extra', 'A draw? Play it again'],
         cta: "Let's go"
       },
       currentPlayer: function () { return document.getElementById('match').classList.contains('active') && !isCpuTurn() ? nameOf(turnColor) : null; },
-      // The whole tournament is void on quit. After C7 / C11 the scores are saved: ← goes straight home.
+      // The whole round is void on quit. Once the last match is over the scores are saved: ← goes straight home.
       hasProgress: function () { return anyDrop && !committed; },
       onPause: function () { aimPointer = null; clearGhost(); },
       onResume: function () {}
     });
 
-    HG.shell.begin(['assets/header-logo.svg', IMG[1], IMG[2]], start);
+    HG.shell.begin(['assets/header-logo.svg', 'assets/board.svg', IMG[1], IMG[2]], start);
   </script>
 </body>
 </html>
