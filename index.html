@@ -78,6 +78,22 @@
     .plist { display:flex; flex-direction:column; gap:10px; }
     .prow { display:flex; align-items:center; gap:10px; }
     .prow .hg-avatar { width:51px; height:51px; border-radius:18px; }
+    .avbtn { padding:0; border:none; background:none; flex-shrink:0; border-radius:18px; cursor:pointer; touch-action:manipulation; }
+    .avbtn:active { transform:scale(0.94); }
+
+    /* 04c · Choose your avatar (Figma Hasbro_MiniGames_AddPlayers_03): dark overlay, white card, 3 × 8 monsters */
+    .avpick { position:fixed; inset:0; z-index:60; background:rgba(0,31,59,0.9); overflow-y:auto; overscroll-behavior:contain;
+      padding:calc(42px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px)); display:none; }
+    .avpick.open { display:block; animation:avin 0.2s ease; }
+    @keyframes avin { from { opacity:0; } }
+    .avcard { width:100%; max-width:357px; margin:0 auto; background:#fff; border-radius:32px; padding:20px 18px; display:flex; flex-direction:column; gap:18px; }
+    .avcard .ttl { font-family:var(--f-display); font-weight:900; font-size:27px; line-height:0.95; letter-spacing:0.54px; color:var(--dark-blue); text-align:center; text-transform:uppercase; }
+    .avgrid { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
+    .avgrid button { padding:0; border:none; background:none; aspect-ratio:1; border-radius:33px; cursor:pointer; touch-action:manipulation; }
+    .avgrid .hg-avatar { width:100%; height:100%; border-radius:33px; }
+    .avgrid button.on { outline:4px solid var(--dark-blue); outline-offset:3px; }
+    .avgrid button:disabled { opacity:0.3; cursor:default; }
+    .avgrid button:not(:disabled):active { transform:scale(0.95); }
     .pinput { flex:1; min-width:0; height:51px; padding:0 18px; border-radius:24px; border:1.5px solid var(--light-blue); background:#fff; color:var(--dark-blue);
       font-family:var(--f-ui); font-weight:500; font-size:16px; outline:none; }
     .pinput::placeholder { color:rgba(0,31,59,0.4); font-weight:400; }
@@ -287,6 +303,7 @@
   </div>
 
   <!-- 03b Terms sheet · 05c Settings · 05e Clear · remove-player confirm -->
+  <div class="avpick hg-scroll" id="avpick"><div class="avcard"><div class="ttl" data-t="choose_avatar">Choose your avatar</div><div class="avgrid" id="avgrid"></div></div></div>
   <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 
   <script src="shared.js"></script>
@@ -301,7 +318,7 @@
         terms_4: 'Your data is protected locally.', terms_3: 'Some games get you moving. Play safely.',
         terms_tc: 'Terms & Conditions', terms_pn: 'Privacy notice',
         terms_ok: "I'm 16+, or a parent / guardian, and I accept the Terms", accept: 'Accept & continue',
-        who: "Who's playing?", add_1_8: 'Add 1 to 8 players.', add_player: 'Add player', max8: '8 players max',
+        who: "Who's playing?", add_1_8: 'Add 1 to 8 players.', add_player: 'Add player', max8: '8 players max', choose_avatar: 'Choose your avatar',
         lets_play: "Let's play!", player_n: 'Player {n}',
         dup: '{name} is already playing. Try "{name} B." or a nickname.',
         remove_q: 'Remove {name}?', remove_body: 'Their {pts} points will be lost.', remove: 'Remove', cancel: 'Cancel',
@@ -324,7 +341,7 @@
         terms_4: 'Tes données restent protégées ici.', terms_3: 'Certains jeux font bouger. Joue prudemment.',
         terms_tc: 'Conditions générales', terms_pn: 'Politique de confidentialité',
         terms_ok: "J'ai 16 ans ou plus, ou je suis parent / tuteur, et j'accepte les Conditions", accept: 'Accepter et continuer',
-        who: 'Qui joue ?', add_1_8: 'Ajoute 1 à 8 joueurs.', add_player: 'Ajouter un joueur', max8: '8 joueurs max',
+        who: 'Qui joue ?', add_1_8: 'Ajoute 1 à 8 joueurs.', add_player: 'Ajouter un joueur', max8: '8 joueurs max', choose_avatar: 'Choisis ton avatar',
         lets_play: "C'est parti !", player_n: 'Joueur {n}',
         dup: '{name} joue déjà. Essaie « {name} B. » ou un surnom.',
         remove_q: 'Retirer {name} ?', remove_body: 'Ses {pts} points seront perdus.', remove: 'Retirer', cancel: 'Annuler',
@@ -475,12 +492,16 @@
       origNames = edit ? names.slice() : names.map(function () { return null; });
       errors = {};
       show('p-players');
-      renderPlayers(names.map(function (n, i) { return { value: n, orig: origNames[i] }; }));
+      var taken = [];
+      renderPlayers(names.map(function (n, i) {
+        var av = edit ? HG.avatarIdOf(n) : HG.freeMonster(taken); taken.push(av);
+        return { value: n, orig: origNames[i], av: av };
+      }));
       if (!edit) setTimeout(function () { var f = document.querySelector('.pinput'); if (f) f.focus(); }, 50);
     }
     function readRows() {
       return Array.prototype.map.call(document.querySelectorAll('.prow'), function (r) {
-        return { value: r.querySelector('input').value, orig: r.dataset.orig || null };
+        return { value: r.querySelector('input').value, orig: r.dataset.orig || null, av: r.dataset.av };
       });
     }
     function renderPlayers(rows) {
@@ -490,7 +511,11 @@
       document.querySelector('.pcard').classList.toggle('compact', rows.length >= 5);
       rows.forEach(function (r, i) {
         var row = el('div', 'prow'); if (r.orig) row.dataset.orig = r.orig;
-        row.appendChild(HG.avatar('', null, i));
+        row.dataset.av = r.av;
+        var avb = el('button', 'avbtn'); avb.setAttribute('aria-label', t('choose_avatar'));
+        avb.appendChild(HG.avatar('', null, r.av));
+        tap(avb, function () { openAvatars(i); });
+        row.appendChild(avb);
         var inp = el('input', 'pinput');
         inp.type = 'text'; inp.maxLength = 16; inp.value = r.value; inp.placeholder = t('player_n', { n: i + 1 });
         inp.autocomplete = 'off'; inp.setAttribute('autocapitalize', 'words'); inp.spellcheck = false;
@@ -537,7 +562,7 @@
     }
     tap(document.getElementById('padd'), function () {
       var rows = readRows(); if (rows.length >= 8) return;
-      rows.push({ value: '', orig: null }); renderPlayers(rows);
+      rows.push({ value: '', orig: null, av: HG.freeMonster(rows.map(function (r) { return r.av; })) }); renderPlayers(rows);
       var all = document.querySelectorAll('.pinput'); all[all.length - 1].focus();
     });
     // Names must be unique: trimmed, case-insensitive. Error on the later duplicate only.
@@ -579,11 +604,37 @@
         names.push(n);
         if (r.orig && r.orig !== n) renames[r.orig] = n;   // rename keeps the points
       });
-      HG.setPlayers(names, renames);
+      HG.setPlayers(names, renames, rows.map(function (r) { return r.av; }));
       document.activeElement && document.activeElement.blur();
       history.replaceState(null, '', location.pathname);  // browser back can't return to onboarding
       goHome();
     }
+    // 04c · Choose your avatar: tap a player's monster. Monsters other players have are greyed out.
+    var avpick = document.getElementById('avpick');
+    function openAvatars(i) {
+      var a = document.activeElement; if (a && a.tagName === 'INPUT') a.blur();
+      var rows = readRows(), mine = rows[i].av;
+      var others = rows.filter(function (r, k) { return k !== i; }).map(function (r) { return r.av; });
+      var grid = document.getElementById('avgrid'); clear(grid);
+      HG.MONSTER_IDS.forEach(function (id) {
+        var b = el('button'); b.appendChild(HG.avatar('', null, id));
+        b.classList.toggle('on', id === mine);
+        b.disabled = others.indexOf(id) >= 0;
+        tap(b, function () {
+          if (b.disabled) return;
+          var row = document.querySelectorAll('.prow')[i];
+          row.dataset.av = id;
+          var old = row.querySelector('.hg-avatar'); old.parentNode.replaceChild(HG.avatar('', null, id), old);
+          closeAvatars();
+        });
+        grid.appendChild(b);
+      });
+      avpick.scrollTop = 0;
+      avpick.classList.add('open');
+    }
+    function closeAvatars() { avpick.classList.remove('open'); }
+    avpick.addEventListener('click', function (e) { if (!e.target.closest('.avcard')) closeAvatars(); });
+
     tap(document.getElementById('players-go'), submitPlayers);
     tap(document.getElementById('players-back'), function () {
       if (editMode) goHome(); else show('p-terms');
@@ -623,7 +674,7 @@
         [0, 1, 2].forEach(function (i) {
           var r = ranked[i]; if (!r) return;
           var p = el('div', 'pod p' + (i + 1));
-          var av = HG.avatar(r.item); var m = av.querySelector('img'); m.className = 'm';
+          var av = HG.avatar(r.item); var m = av.querySelector('img'); m.className = 'm'; m.removeAttribute('style');
           p.appendChild(m);
           p.appendChild(el('div', 'nm', r.item));
           pod.appendChild(p);

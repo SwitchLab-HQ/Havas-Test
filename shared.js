@@ -6,6 +6,7 @@
 
 var HG = (function () {
   var PLAYERS_KEY = 'hg_players';   // sessionStorage: ['Léa','Sam',…] (player-list order)
+  var AVATARS_KEY = 'hg_avatars';   // sessionStorage: { name: monster id } (picked on the Players screen)
   var SCORES_KEY  = 'hg_scores';    // sessionStorage: { name: { twister: n, … } }
   var LAST_KEY    = 'hg_last_round';// sessionStorage: what G3 animates
   var SOUND_KEY   = 'hg_sound';     // localStorage: '1' | '0'
@@ -34,7 +35,8 @@ var HG = (function () {
   function hasPlayers() { return getPlayers().length >= 1; }
 
   // renames: { oldName: newName } — rename keeps the points. Removed players lose theirs.
-  function setPlayers(names, renames) {
+  // avatars (optional): monster id per name, same order as names.
+  function setPlayers(names, renames, avatars) {
     var scores = getScores(), next = {};
     renames = renames || {};
     names.forEach(function (n) {
@@ -44,6 +46,11 @@ var HG = (function () {
     });
     sSet(sessionStorage, PLAYERS_KEY, names);
     sSet(sessionStorage, SCORES_KEY, next);
+    if (avatars) {
+      var av = {};
+      names.forEach(function (n, i) { if (avatars[i]) av[n] = avatars[i]; });
+      sSet(sessionStorage, AVATARS_KEY, av);
+    }
   }
 
   function sameName(a, b) { return a.trim().toLowerCase() === b.trim().toLowerCase(); }
@@ -348,21 +355,43 @@ var HG = (function () {
   })();
   function asset(p) { return ROOT + p; }
 
-  // Mini monsters, one per player by player-list position (Figma order of the Players screen).
-  var MONSTERS = [
-    ['08', '#0094da'], ['07', '#ee6ba3'], ['22', '#a7c919'], ['18', '#ffdd00'],
-    ['09', '#4ec6e0'], ['06', '#ffdd00'], ['03', '#4ec6e0'], ['15', '#ee6ba3'], ['12', '#ffdd00']
-  ];
-  function monsterOf(name) {
+  // Mini monsters (Figma Hasbro_MiniGames_AddPlayers_03, picker order): id → [tile colour, art size in the tile].
+  var MONSTERS = {
+    '01': ['#4ec6e0', 0.86], '02': ['#f68a1e', 0.73], '03': ['#4ec6e0', 0.78], '04': ['#0094da', 0.78],
+    '05': ['#4ec6e0', 0.82], '06': ['#ffdd00', 0.78], '07': ['#ee6ba3', 0.73], '08': ['#0094da', 0.78],
+    '09': ['#4ec6e0', 0.78], '10': ['#ee3d7f', 0.73], '11': ['#4ec6e0', 0.73], '12': ['#ffdd00', 0.73],
+    '13': ['#f68a1e', 0.73], '14': ['#ee3d7f', 0.78], '15': ['#ee6ba3', 0.73], '25': ['#f68a1e', 0.73],
+    '17': ['#ffdd00', 0.73], '18': ['#ffdd00', 0.73], '19': ['#4ec6e0', 0.73], '20': ['#a7c919', 0.73],
+    '21': ['#f68a1e', 0.78], '22': ['#a7c919', 0.73], '26': ['#ffdd00', 0.78], '24': ['#4ec6e0', 0.73]
+  };
+  var MONSTER_IDS = Object.keys(MONSTERS).sort(function (a, b) {   // keep the Figma order (25 sits after 15)
+    var o = ['01','02','03','04','05','06','07','08','09','10','11','12','13','14','15','25','17','18','19','20','21','22','26','24'];
+    return o.indexOf(a) - o.indexOf(b);
+  });
+  // Until a player picks one: by player-list position (Figma order of the Players screen).
+  var DEFAULT_MONSTERS = ['08', '07', '22', '18', '09', '06', '03', '15', '12'];
+  function getAvatars() { return sGet(sessionStorage, AVATARS_KEY, {}); }
+  // First default monster not in `taken` (ids already used by other players).
+  function freeMonster(taken) {
+    var all = DEFAULT_MONSTERS.concat(MONSTER_IDS);
+    for (var i = 0; i < all.length; i++) if (taken.indexOf(all[i]) < 0) return all[i];
+    return DEFAULT_MONSTERS[0];
+  }
+  function avatarIdOf(name) {
+    var saved = getAvatars();
+    if (saved[name] && MONSTERS[saved[name]]) return saved[name];
     var i = getPlayers().indexOf(name);
     if (i < 0) { i = 0; for (var k = 0; k < name.length; k++) i += name.charCodeAt(k); }
-    return MONSTERS[i % MONSTERS.length];
+    return DEFAULT_MONSTERS[i % DEFAULT_MONSTERS.length];
   }
-  function avatar(name, cls, index) {
-    var m = index !== undefined ? MONSTERS[index % MONSTERS.length] : monsterOf(name);
+  // id: a monster id ('08') to draw that one instead of the player's.
+  function avatar(name, cls, id) {
+    id = MONSTERS[id] ? id : avatarIdOf(name);
+    var m = MONSTERS[id];
     var a = el('span', 'hg-avatar' + (cls ? ' ' + cls : ''));
-    a.style.background = m[1];
-    var img = el('img'); img.src = asset('assets/ui/monsters/monster-' + m[0] + '.webp'); img.alt = '';
+    a.style.background = m[0];
+    var img = el('img'); img.src = asset('assets/ui/monsters/monster-' + id + '.webp'); img.alt = '';
+    img.style.width = img.style.height = Math.round(m[1] * 100) + '%';
     a.appendChild(img);
     return a;
   }
@@ -754,7 +783,7 @@ var HG = (function () {
     LANGUAGES: LANGUAGES, getLang: getLang, manualLang: manualLang, detectLang: detectLang,
     setLang: setLang, addStrings: addStrings, t: t,
     isMobile: isMobile, shuffle: shuffle, el: el, clear: clear, onTap: onTap, Clock: Clock,
-    asset: asset, avatar: avatar, tag: tag, rankRow: rankRow, moveBadge: moveBadge, timerRing: timerRing, confetti: confetti,
+    asset: asset, avatar: avatar, MONSTER_IDS: MONSTER_IDS, avatarIdOf: avatarIdOf, freeMonster: freeMonster, tag: tag, rankRow: rankRow, moveBadge: moveBadge, timerRing: timerRing, confetti: confetti,
     play: play, unlockAudio: unlockAudio, feedback: feedback, lockGestures: lockGestures,
     shell: shell
   };
