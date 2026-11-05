@@ -28,6 +28,12 @@
     .stack > .hg-btn:first-of-type { margin-top:auto; }
     .note { font-family:var(--f-body); font-weight:700; font-size:14px; line-height:20px; color:var(--dark-blue); text-align:center; }
 
+    /* Hitbox test only (CFG.TEST_PICKER) */
+    .testpick { display:flex; align-items:center; gap:6px; font-family:var(--f-body); font-weight:700; font-size:12px; color:var(--dark-blue); }
+    .testpick span { margin-right:2px; }
+    .testpick button { width:38px; height:38px; border:2px solid var(--dark-blue); border-radius:50%; background:#fff; color:var(--dark-blue); font-family:var(--f-body); font-weight:900; font-size:13px; }
+    .testpick button.on { background:var(--dark-blue); color:#fff; }
+
     /* O1 / O2 / O6 · HUD on top, the art fills the rest of the screen */
     #play { padding:15px 0 0; gap:8px; }
     #play .hg-banner { margin:0 20px; width:calc(100% - 40px); }
@@ -93,25 +99,36 @@
     // ── Paths: one art + one mask each, same size (black = path, white = wall), in art pixels.
     //    start = centre of the start blob, exit = centre of the exit blob (where the bone comes out).
     //    Play again = another path (once there is more than one). Par / slow from playtests: placeholders. ──
+    //    Hitbox test (2026-11-05): prod-01–05 go from the most forgiving to the strictest, the name is the margin set by the AD.
     var PATHS = [
-      { name: 'Funny Bone', art: 'assets/paths/path-01-art.webp', mask: 'assets/paths/path-01-hitbox.png',
-        start: [252, 408], exit: [996, 212], par: 7000, slow: 28000 }
+      { name: 'Hitbox +8 pt', test: '+8', art: 'assets/paths/prod-01-art.webp', mask: 'assets/paths/prod-01-hitbox.png',
+        start: [264, 400], exit: [992, 222], par: 7000, slow: 28000 },
+      { name: 'Hitbox +6 pt', test: '+6', art: 'assets/paths/prod-02-art.webp', mask: 'assets/paths/prod-02-hitbox.png',
+        start: [168, 1020], exit: [286, 242], par: 7000, slow: 28000 },
+      { name: 'Hitbox +4 pt', test: '+4', art: 'assets/paths/prod-03-art.webp', mask: 'assets/paths/prod-03-hitbox.png',
+        start: [278, 1050], exit: [832, 242], par: 7000, slow: 28000 },
+      { name: 'Hitbox +2 pt', test: '+2', art: 'assets/paths/prod-04-art.webp', mask: 'assets/paths/prod-04-hitbox.png',
+        start: [298, 1050], exit: [852, 242], par: 7000, slow: 28000 },
+      { name: 'Hitbox +0 pt', test: '+0', art: 'assets/paths/prod-05-art.webp', mask: 'assets/paths/prod-05-hitbox.png',
+        start: [334, 1050], exit: [888, 242], par: 7000, slow: 28000 }
     ];
     // Tool art + mask (Operation_pince_01 / _hitbox), same pixel scale as the path art.
     var TOOL = { art: 'assets/tool.webp', mask: 'assets/tool-hitbox.png' };
     var ART_W = 1200;            // art width = phone width at 390 px (Figma: 390 × 500.5 under the HUD)
     var CFG = {
-      FIT_H: 1300,               // art pixels that must fit in height: the lowest bone spot + the finger under it
+      FIT_H: 1400,               // art pixels that must fit in height: the tool at the lowest start, down to the end of its grip
       EXIT_R: 70,                // bone out when its centre is this close to the exit (art px)
       GRIP_SLOP: 12,             // extra CSS px around the finger zone of the tool
       STEP: 8,                   // wall test every 8 art px along a move (no tunnelling through a wall)
       SNAP_BACK: 48,             // on a wall hit the bone jumps back at least this far along its trail (art px)
-      CTA_DELAY: 800
+      CTA_DELAY: 800,
+      TEST_PICKER: true          // hitbox test: path buttons on Up next. Set to false before launch.
     };
     var el = HG.el, clear = HG.clear, tap = HG.onTap;
 
     // ── Round state ──
     var players = [], order = [], turn = 0, results = [], pathIdx = -1, committed = false;
+    var pinned = false, switching = false;   // hitbox test: a path picked by hand stays for Play again
     // ── Turn state ──
     var phase = 'idle';   // idle | ready (O1, waiting for pick-up) | run (O2) | over
     var touches = 0, maxProg = 0, picked = false, turnStarted = false;
@@ -231,13 +248,32 @@
     // ── Round ──
     function newRound() {
       order = HG.shuffle(players); turn = 0; results = []; committed = false;
-      var next; do { next = Math.floor(Math.random() * PATHS.length); } while (PATHS.length > 1 && next === pathIdx);
-      pathIdx = next;                 // same path + bone for everyone; Play again = a new one
+      if (!pinned) {
+        var next; do { next = Math.floor(Math.random() * PATHS.length); } while (PATHS.length > 1 && next === pathIdx);
+        pathIdx = next;               // same path + bone for everyone; Play again = a new one
+      }
       preparePath().then(showUpNext);
     }
     function showUpNext() {
       phase = 'idle'; screen('upnext');
-      HG.shell.upNext(document.getElementById('upnext'), order, turn, startTurn);
+      var c = document.getElementById('upnext');
+      HG.shell.upNext(c, order, turn, startTurn);
+      if (CFG.TEST_PICKER) c.insertBefore(testPicker(), c.firstChild);
+    }
+    // Hitbox test only: choose the path to try. Changes it for the rest of the round too.
+    function testPicker() {
+      var row = el('div', 'testpick');
+      row.appendChild(el('span', null, 'Hitbox test'));
+      PATHS.forEach(function (P, i) {
+        var b = el('button', i === pathIdx ? 'on' : null, P.test);
+        tap(b, function () {
+          if (switching || i === pathIdx) { pinned = true; return; }
+          switching = true; pinned = true; pathIdx = i;
+          preparePath().then(function () { switching = false; showUpNext(); });
+        });
+        row.appendChild(b);
+      });
+      return row;
     }
 
     // ── O1 · Pick up the tool ──
@@ -435,7 +471,9 @@
 
     players = HG.getPlayers();
     if (!players.length) players = ['Player 1'];
-    HG.shell.begin(['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp', PATHS[0].art, PATHS[0].mask, TOOL.art, TOOL.mask], newRound);
+    var preload = ['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp', TOOL.art, TOOL.mask];
+    PATHS.forEach(function (P) { preload.push(P.art, P.mask); });
+    HG.shell.begin(preload, newRound);
   </script>
 </body>
 </html>
