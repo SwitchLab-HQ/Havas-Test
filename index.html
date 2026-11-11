@@ -663,6 +663,25 @@
     }, { passive: true });
 
     // ── 05 · Home ──
+    // Podium: each monster stands with its feet on the middle of its step's top face (podium px, measured on podium.webp).
+    // The monster art has more or less empty space under the feet, so the feet are found in the image itself.
+    var SEAT = [111, 135.5, 162.5];                       // 1st, 2nd, 3rd step
+    function feetOf(img) {                              // lowest row with some opaque pixels, as a share of the height
+      if (img._feet) return img._feet;
+      try {
+        var w = img.naturalWidth, h = img.naturalHeight, c = document.createElement('canvas'); c.width = w; c.height = h;
+        var g = c.getContext('2d'); g.drawImage(img, 0, 0); var d = g.getImageData(0, 0, w, h).data;
+        for (var y = h - 1; y > 0; y--) {
+          var n = 0; for (var x = 0; x < w; x++) if (d[(y * w + x) * 4 + 3] > 200) n++;
+          if (n >= w * 0.04) return (img._feet = (y + 1) / h);
+        }
+      } catch (e) {}
+      return 1;
+    }
+    function seat(pod, img, i) {
+      var cs = getComputedStyle(img), size = parseFloat(cs.width), mt = parseFloat(cs.marginTop) || 0;
+      pod.style.top = (SEAT[i] - mt - size * feetOf(img)) + 'px';
+    }
     function goHome() { show('p-home'); renderHome(); document.getElementById('home-body').scrollTop = 0; }
     function renderHome() {
       var players = HG.getPlayers(), tot = HG.totals(), scores = HG.getScores(), any = HG.anyScore();
@@ -679,6 +698,7 @@
           p.appendChild(m);
           p.appendChild(el('div', 'nm', r.item));
           pod.appendChild(p);
+          if (m.complete && m.naturalWidth) seat(p, m, i); else m.onload = function () { seat(p, m, i); };
         });
       }
       var cards = document.getElementById('cards'); clear(cards);
