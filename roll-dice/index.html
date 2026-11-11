@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="../gate.js"></script>  <!-- staging password page: remove for the client environment -->
   <script>
     // Served at /roll-dice: without the trailing slash, relative asset paths would resolve from the site root.
     if (/\/roll-dice$/.test(location.pathname)) location.replace(location.pathname + '/' + location.search + location.hash);

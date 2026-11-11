@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="../../gate.js"></script>  <!-- staging password page: remove for the client environment -->
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -27,12 +28,6 @@
     .stack { justify-content:center; gap:16px; padding:20px 20px 24px; text-align:center; }
     .stack > .hg-btn:first-of-type { margin-top:auto; }
     .note { font-family:var(--f-body); font-weight:700; font-size:14px; line-height:20px; color:var(--dark-blue); text-align:center; }
-
-    /* Hitbox test only (CFG.TEST_PICKER) */
-    .testpick { display:flex; align-items:center; gap:6px; font-family:var(--f-body); font-weight:700; font-size:12px; color:var(--dark-blue); }
-    .testpick span { margin-right:2px; }
-    .testpick button { width:38px; height:38px; border:2px solid var(--dark-blue); border-radius:50%; background:#fff; color:var(--dark-blue); font-family:var(--f-body); font-weight:900; font-size:13px; }
-    .testpick button.on { background:var(--dark-blue); color:#fff; }
 
     /* O1 / O2 / O6 · HUD on top, the art fills the rest of the screen */
     #play { padding:15px 0 0; gap:8px; }
@@ -99,36 +94,37 @@
     // ── Paths: one art + one mask each, same size (black = path, white = wall), in art pixels.
     //    start = centre of the start blob, exit = centre of the exit blob (where the bone comes out).
     //    Play again = another path (once there is more than one). Par / slow from playtests: placeholders. ──
-    //    Hitbox test (2026-11-05): prod-01–05 go from the most forgiving to the strictest, the name is the margin set by the AD.
+    //    Final set (2026-11-11): 10 paths, 1200 × 1920. The art is taller than the path so it fills taller phones; the
+    //    path itself sits in the top ~1200 px and the bottom of the art is cropped by the screen. Names: placeholders.
     var PATHS = [
-      { name: 'Hitbox +8 pt', test: '+8', art: 'assets/paths/prod-01-art.webp', mask: 'assets/paths/prod-01-hitbox.png',
-        start: [264, 400], exit: [992, 222], par: 7000, slow: 28000 },
-      { name: 'Hitbox +6 pt', test: '+6', art: 'assets/paths/prod-02-art.webp', mask: 'assets/paths/prod-02-hitbox.png',
-        start: [168, 1020], exit: [286, 242], par: 7000, slow: 28000 },
-      { name: 'Hitbox +4 pt', test: '+4', art: 'assets/paths/prod-03-art.webp', mask: 'assets/paths/prod-03-hitbox.png',
-        start: [278, 1050], exit: [832, 242], par: 7000, slow: 28000 },
-      { name: 'Hitbox +2 pt', test: '+2', art: 'assets/paths/prod-04-art.webp', mask: 'assets/paths/prod-04-hitbox.png',
-        start: [298, 1050], exit: [852, 242], par: 7000, slow: 28000 },
-      { name: 'Hitbox +0 pt', test: '+0', art: 'assets/paths/prod-05-art.webp', mask: 'assets/paths/prod-05-hitbox.png',
-        start: [334, 1050], exit: [888, 242], par: 7000, slow: 28000 }
+      { name: 'Path 1', art: 'assets/paths/path-01-art.webp', mask: 'assets/paths/path-01-hitbox.png', start: [270, 398], exit: [992, 222], par: 7000, slow: 28000 },
+      { name: 'Path 2', art: 'assets/paths/path-02-art.webp', mask: 'assets/paths/path-02-hitbox.png', start: [164, 1024], exit: [286, 242], par: 7000, slow: 28000 },
+      { name: 'Path 3', art: 'assets/paths/path-03-art.webp', mask: 'assets/paths/path-03-hitbox.png', start: [122, 246], exit: [938, 800], par: 7000, slow: 28000 },
+      { name: 'Path 4', art: 'assets/paths/path-04-art.webp', mask: 'assets/paths/path-04-hitbox.png', start: [160, 684], exit: [898, 208], par: 7000, slow: 28000 },
+      { name: 'Path 5', art: 'assets/paths/path-05-art.webp', mask: 'assets/paths/path-05-hitbox.png', start: [358, 310], exit: [982, 974], par: 7000, slow: 28000 },
+      { name: 'Path 6', art: 'assets/paths/path-06-art.webp', mask: 'assets/paths/path-06-hitbox.png', start: [972, 1012], exit: [256, 200], par: 7000, slow: 28000 },
+      { name: 'Path 7', art: 'assets/paths/path-07-art.webp', mask: 'assets/paths/path-07-hitbox.png', start: [652, 772], exit: [272, 274], par: 7000, slow: 28000 },
+      { name: 'Path 8', art: 'assets/paths/path-08-art.webp', mask: 'assets/paths/path-08-hitbox.png', start: [896, 1064], exit: [996, 400], par: 7000, slow: 28000 },
+      { name: 'Path 9', art: 'assets/paths/path-09-art.webp', mask: 'assets/paths/path-09-hitbox.png', start: [890, 464], exit: [208, 894], par: 7000, slow: 28000 },
+      { name: 'Path 10', art: 'assets/paths/path-10-art.webp', mask: 'assets/paths/path-10-hitbox.png', start: [166, 220], exit: [956, 980], par: 7000, slow: 28000 }
     ];
-    // Tool art + mask (Operation_pince_01 / _hitbox), same pixel scale as the path art.
-    var TOOL = { art: 'assets/tool.webp', mask: 'assets/tool-hitbox.png' };
+    // Tweezers: 12 looks (Operation_paths_PROD_pince_01–12), one shared mask. A random look each turn.
+    var TOOL_ARTS = [];
+    for (var tn = 1; tn <= 12; tn++) TOOL_ARTS.push('assets/tools/tool-' + (tn < 10 ? '0' : '') + tn + '.webp');
+    var TOOL_MASK = 'assets/tools/tool-hitbox.png', toolArt = -1;
     var ART_W = 1200;            // art width = phone width at 390 px (Figma: 390 × 500.5 under the HUD)
     var CFG = {
-      FIT_H: 1400,               // art pixels that must fit in height: the tool at the lowest start, down to the end of its grip
+      FIT_H: 1430,               // art pixels that must fit in height: the tool at its lowest spot, down to the end of its grip
       EXIT_R: 70,                // bone out when its centre is this close to the exit (art px)
       GRIP_SLOP: 12,             // extra CSS px around the finger zone of the tool
       STEP: 8,                   // wall test every 8 art px along a move (no tunnelling through a wall)
       SNAP_BACK: 48,             // on a wall hit the bone jumps back at least this far along its trail (art px)
-      CTA_DELAY: 800,
-      TEST_PICKER: true          // hitbox test: path buttons on Up next. Set to false before launch.
+      CTA_DELAY: 800
     };
     var el = HG.el, clear = HG.clear, tap = HG.onTap;
 
     // ── Round state ──
     var players = [], order = [], turn = 0, results = [], pathIdx = -1, committed = false;
-    var pinned = false, switching = false;   // hitbox test: a path picked by hand stays for Play again
     // ── Turn state ──
     var phase = 'idle';   // idle | ready (O1, waiting for pick-up) | run (O2) | over
     var touches = 0, maxProg = 0, picked = false, turnStarted = false;
@@ -219,10 +215,10 @@
       var P = PATHS[pathIdx];
       artEl.src = P.art;
       document.getElementById('fill').style.backgroundImage = 'url("' + P.art + '")';
-      return Promise.all([loadImg(P.mask), tool ? null : loadImg(TOOL.mask)]).then(function (r) {
+      return Promise.all([loadImg(P.mask), tool ? null : loadImg(TOOL_MASK), loadImg(P.art)]).then(function (r) {
         wall = maskData(r[0]); artH = wall.h * ART_W / wall.w;
         if (r[1]) tool = readTool(r[1]);
-        toolEl.src = TOOL.art; toolEl.style.width = tool.w + 'px'; toolEl.style.height = tool.h + 'px';
+        toolEl.style.width = tool.w + 'px'; toolEl.style.height = tool.h + 'px';
         artEl.style.width = ART_W + 'px'; artEl.style.height = artH + 'px';
         buildDist(P);
       });
@@ -248,32 +244,13 @@
     // ── Round ──
     function newRound() {
       order = HG.shuffle(players); turn = 0; results = []; committed = false;
-      if (!pinned) {
-        var next; do { next = Math.floor(Math.random() * PATHS.length); } while (PATHS.length > 1 && next === pathIdx);
-        pathIdx = next;               // same path + bone for everyone; Play again = a new one
-      }
+      var next; do { next = Math.floor(Math.random() * PATHS.length); } while (PATHS.length > 1 && next === pathIdx);
+      pathIdx = next;                 // same path + bone for everyone; Play again = a new one
       preparePath().then(showUpNext);
     }
     function showUpNext() {
       phase = 'idle'; screen('upnext');
-      var c = document.getElementById('upnext');
-      HG.shell.upNext(c, order, turn, startTurn);
-      if (CFG.TEST_PICKER) c.insertBefore(testPicker(), c.firstChild);
-    }
-    // Hitbox test only: choose the path to try. Changes it for the rest of the round too.
-    function testPicker() {
-      var row = el('div', 'testpick');
-      row.appendChild(el('span', null, 'Hitbox test'));
-      PATHS.forEach(function (P, i) {
-        var b = el('button', i === pathIdx ? 'on' : null, P.test);
-        tap(b, function () {
-          if (switching || i === pathIdx) { pinned = true; return; }
-          switching = true; pinned = true; pathIdx = i;
-          preparePath().then(function () { switching = false; showUpNext(); });
-        });
-        row.appendChild(b);
-      });
-      return row;
+      HG.shell.upNext(document.getElementById('upnext'), order, turn, startTurn);
     }
 
     // ── O1 · Pick up the tool ──
@@ -285,6 +262,8 @@
       document.getElementById('pathname').textContent = PATHS[pathIdx].name;
       screen('play');
       layout();
+      var t; do { t = Math.floor(Math.random() * TOOL_ARTS.length); } while (t === toolArt);
+      toolArt = t; toolEl.src = TOOL_ARTS[t];         // a different tweezers look from the previous turn
       bone = { x: PATHS[pathIdx].start[0], y: PATHS[pathIdx].start[1] };
       trail = [bone];
       drawTool(); boardEl.classList.add('ready');
@@ -471,8 +450,8 @@
 
     players = HG.getPlayers();
     if (!players.length) players = ['Player 1'];
-    var preload = ['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp', TOOL.art, TOOL.mask];
-    PATHS.forEach(function (P) { preload.push(P.art, P.mask); });
+    var preload = ['../../assets/ui/logo-operation.webp', 'assets/bg-pattern.webp', TOOL_MASK].concat(TOOL_ARTS);
+    PATHS.forEach(function (P) { preload.push(P.mask); });   // the art (≈ 100 KB each) loads with its round
     HG.shell.begin(preload, newRound);
   </script>
 </body>

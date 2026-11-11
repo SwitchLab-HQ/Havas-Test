@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="../../gate.js"></script>  <!-- staging password page: remove for the client environment -->
   <!-- Google Tag Manager -->
   <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
   new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -138,8 +139,9 @@
     var CFG = { TIME_MS: 35000, PAR_MS: 8000, SLOW_MS: 35000, LOCK_MS: 2500 };   // par / slow: placeholders until playtests
 
     // ── Content: the 6 suspects of the Hasbro Cluedo toolkit, 9 rooms, 6 weapons ──
-    // Art: 2 puzzles per suspect, 3 per room, 3 per weapon, square (800 × 800 delivered), e.g. assets/puzzles/cluedo-weapon-rope-02.webp.
-    // Until the AD delivers them: placeholder scenes (assets/scenes/scene-NN.png), else a picture drawn in code.
+    // Art (2026-11-11, 2. Crea/1. Cluedo): one square picture (800 × 800) per suspect, room and weapon,
+    // e.g. assets/puzzles/cluedo-weapon-rope-01.webp. A clue played twice in a case reuses its picture.
+    // Fallbacks if a file is missing: a placeholder scene (assets/scenes/scene-NN.png), else a picture drawn in code.
     var POOL = {
       who: { n: 2, label: 'Culprit', the: 'the culprit', items: [
         { id: 'scarlett', name: 'Miss Scarlett', col: '#AF231C', art: '🌹' },
@@ -213,7 +215,7 @@
       return c.toDataURL('image/jpeg', 0.85);
     }
     function artUrl(kind, item, v) {
-      return 'assets/puzzles/cluedo-' + KIND_FILE[kind] + '-' + item.id + '-0' + v + '.webp';
+      return 'assets/puzzles/cluedo-' + KIND_FILE[kind] + '-' + item.id + '-01.webp';   // one picture per item (v unused)
     }
     // Square crop (the puzzle is 3 × 3). Portrait / landscape art is cut top / middle / bottom
     // by framing v, so one picture already gives 2–3 different puzzles.
