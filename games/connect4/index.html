@@ -46,9 +46,14 @@
     .vs { display:flex; align-items:flex-start; justify-content:center; gap:10px; width:100%; max-width:352px; margin-top:20px; }
     .side { flex:1; display:flex; flex-direction:column; align-items:center; gap:10px; min-width:0; }
     .side .coin { width:120px; height:120px; display:block; }
-    .side .hg-tag { max-width:100%; padding:6px 16px; }
+    /* CN4-01: name pill with the player's monster at its outer end (mirrored on the right) */
+    .ntag { display:flex; align-items:center; max-width:calc(100% + 20px); }   /* may reach under the VS gap, not past the coins' outer edge */
+    .ntag .hg-avatar { width:38px; height:38px; border-radius:12px; position:relative; z-index:1; }
+    .ntag b { min-width:0; height:28px; line-height:28px; margin-left:-12px; padding:0 12px 0 20px; border-radius:14px; background:var(--dark-blue); color:#fff;
+      font-family:var(--f-display); font-weight:900; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ntag.r { flex-direction:row-reverse; }
+    .ntag.r b { margin:0 -12px 0 0; padding:0 20px 0 12px; }
     .vs-x { font-family:var(--f-display); font-weight:900; font-size:34px; color:#fff; -webkit-text-stroke:6px var(--dark-blue); paint-order:stroke fill; margin-top:44px; }
-    .cpu { width:120px; height:120px; border-radius:30px; background:var(--dark-blue); display:flex; align-items:center; justify-content:center; font-size:64px; }
     #next .shout { margin-top:30px; }
 
     /* C3 Match: players row, turn banner, board */
@@ -58,7 +63,7 @@
       background:var(--dark-blue); border:4px solid transparent; opacity:0.6; transition:opacity .2s, border-color .2s; }
     .ptag.r { flex-direction:row-reverse; padding:4px 12px 4px 4px; }
     .ptag b { font-family:var(--f-display); font-weight:900; font-size:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
-    .ptag img, .ptag .cpuface { width:22px; height:22px; flex-shrink:0; font-size:18px; line-height:22px; text-align:center; }
+    .ptag img { width:22px; height:22px; flex-shrink:0; }
     .ptag.on { opacity:1; }
     .ptag.on.y { border-color:var(--yellow); }
     .ptag.on.rd { border-color:var(--red); }
@@ -217,10 +222,14 @@
       c.appendChild(btn('Play', 'hg-btn-primary', startMatch));
       screen('next');
     }
+    // CN4-01 / CN4-03: the coin is always the colour's coin (the computer too); the player is shown by their monster.
     function side(name, color) {
       var s = el('div', 'side');
-      if (name === CPU) s.appendChild(el('div', 'cpu', '🤖')); else s.appendChild(tok(color, 'coin'));
-      s.appendChild(HG.tag(name));
+      s.appendChild(tok(color, 'coin'));
+      var t = el('div', 'ntag' + (color === R ? ' r' : ''));
+      t.appendChild(HG.avatar(name, null, name === CPU ? 'cpu' : null));
+      t.appendChild(el('b', null, name));
+      s.appendChild(t);
       return s;
     }
     function versus(y, r) {
@@ -262,7 +271,7 @@
       [[Y, 'pY', yellow], [R, 'pR', red]].forEach(function (p) {
         var t = document.getElementById(p[1]); clear(t);
         t.appendChild(el('b', null, p[2]));
-        if (p[2] === CPU) t.appendChild(el('span', 'cpuface', '🤖')); else t.appendChild(tok(p[0]));
+        t.appendChild(tok(p[0]));
       });
     }
     // Turn banner: arrow points at the active player's tag (Yellow left, Red right).
@@ -415,13 +424,13 @@
     }
 
     // ── Computer (one level, beatable): win → block → avoid giving a win above → centre; ~20 % random ──
+    // CN4-02: no sweep across the top any more. "Thinking…" for 0.6–0.9 s, then the coin appears over its column
+    // (150 ms) and falls with the same drop as a player's; the turn comes back to the player once it has landed.
     function cpuThink() {
-      var me = turnColor, col = cpuMove(me), dur = 600 + Math.random() * 300, t0 = performance.now(), last = -1;
+      var me = turnColor, col = cpuMove(me), dur = 600 + Math.random() * 300, t0 = performance.now();
       function frame() {
         if (HG.shell.isPaused()) { cpuTimer = requestAnimationFrame(frame); t0 += 16; return; }
-        var t = performance.now() - t0;
-        if (t >= dur) { showGhost(col, me); setTimeout(function () { clearGhost(); drop(col); }, 150); return; }
-        var c = Math.floor((t / 120)) % COLS; if (c !== last) { last = c; showGhost(c, me); }
+        if (performance.now() - t0 >= dur) { showGhost(col, me); setTimeout(function () { clearGhost(); drop(col); }, 150); return; }
         cpuTimer = requestAnimationFrame(frame);
       }
       cpuTimer = requestAnimationFrame(frame);

@@ -68,6 +68,7 @@
     .puzzle.whole .tile { padding:0; transition:padding 0.4s, transform 0.2s; }
     .puzzle.whole .tile i { border-radius:0; }
     .puzzle.whole { border-radius:20px; overflow:hidden; }
+    .puzzle .uncut { position:absolute; inset:0; z-index:4; background-size:100% 100%; }   /* CL-01: one picture, no seams */
     .puzzle.dim { opacity:0.3; }
     .overmsg { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:20px; z-index:6; }
     .overmsg.on { display:flex; }
@@ -477,6 +478,11 @@
       var item = caseItems[t.kind];
       if (ok) {
         puzzle.classList.add('whole');                     // seams fade out, the art becomes whole
+        // CL-01: once the gaps have closed (padding transition, 0.4 s), the 9 tiles are replaced by the uncut picture
+        // (same file, same box), so no sub-pixel seam stays visible between the pieces.
+        setTimeout(function () {
+          var u = el('div', 'uncut'); u.style.backgroundImage = 'url(' + art[t.kind + t.v] + ')'; puzzle.appendChild(u);
+        }, 400);
         HG.play('success');
         setTimeout(function () { showFound(t, item, ms, pts, wasFound); }, 650);
         return;

@@ -384,10 +384,12 @@ var HG = (function () {
     if (i < 0) { i = 0; for (var k = 0; k < name.length; k++) i += name.charCodeAt(k); }
     return DEFAULT_MONSTERS[i % DEFAULT_MONSTERS.length];
   }
-  // id: a monster id ('08') to draw that one instead of the player's.
+  // The computer opponent (Connect 4): its own monster, never offered in the picker (Figma mini_monsters, monster25).
+  var CPU_MONSTER = ['#a7c919', 0.85];
+  // id: a monster id ('08') to draw that one instead of the player's; 'cpu' = the computer.
   function avatar(name, cls, id) {
-    id = MONSTERS[id] ? id : avatarIdOf(name);
-    var m = MONSTERS[id];
+    id = (id === 'cpu' || MONSTERS[id]) ? id : avatarIdOf(name);
+    var m = id === 'cpu' ? CPU_MONSTER : MONSTERS[id];
     var a = el('span', 'hg-avatar' + (cls ? ' ' + cls : ''));
     a.style.background = m[0];
     var img = el('img'); img.src = asset('assets/ui/monsters/monster-' + id + '.webp'); img.alt = '';
@@ -540,7 +542,7 @@ var HG = (function () {
       c.appendChild(el('div', 'hg-card-rule'));
       c.appendChild(el('div', 'hg-card-h', t('how_to_play')));
       var ul = el('ul', 'hg-bullets sm');
-      o.howTo.lines.forEach(function (l) { ul.appendChild(el('li', null, l)); });
+      o.howTo.lines.forEach(function (l) { var li = el('li'); li.appendChild(el('span', null, l)); ul.appendChild(li); });
       c.appendChild(ul);
       var resume = el('button', 'hg-btn hg-btn-primary', t('resume'));
       var quit = el('button', 'hg-btn hg-btn-quit', t('quit'));
@@ -632,7 +634,7 @@ var HG = (function () {
       howEl = el('div', 'hg-howto hg-scroll');
       howEl.appendChild(el('div', 'hg-title', t('how_to_play')));
       var ul = el('ul', 'hg-bullets');
-      o.howTo.lines.forEach(function (l) { ul.appendChild(el('li', null, l)); });
+      o.howTo.lines.forEach(function (l) { var li = el('li'); li.appendChild(el('span', null, l)); ul.appendChild(li); });
       howEl.appendChild(ul);
       var cta = el('button', 'hg-btn hg-btn-primary hg-howto-cta',
         mode === 'pause' ? t('close') : (o.howTo.cta || t('got_it')));

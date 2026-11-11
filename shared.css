@@ -93,13 +93,17 @@ body.theme-operation { background-color: var(--yellow); background-image: url('g
   background: var(--dark-blue); color: #fff; font-family: var(--f-display); font-weight: 900; font-size: 12px; letter-spacing: 0.5px; text-transform: uppercase;
 }
 
-/* "→ text" highlight lines (How to play, Terms, Players) */
-.hg-bullets { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; list-style: none; width: 100%; max-width: 340px; }
+/* "→ text" highlight lines (How to play, Terms, Players, Pause). The text is a <span> laid out inline, so it only wraps
+   when it runs out of room (no shrink-to-fit box guessing its width) and each line gets its own band. The arrow sits at
+   the start of the band; text-indent pulls the first line back so a wrapped line starts under the text, not the arrow. */
+.hg-bullets { display: flex; flex-direction: column; align-items: stretch; gap: 9px; list-style: none; width: 100%; max-width: 340px; }
 .hg-bullets li {
-  display: inline-flex; align-items: center; gap: 10px; padding: 6px 8px; background: var(--dark-blue); color: #fff;
-  font-family: var(--f-ui); font-size: 16px; line-height: 18px; letter-spacing: 0.64px; text-align: left;
+  padding-left: 25px; text-indent: -25px; color: #fff; text-align: left;
+  font-family: var(--f-ui); font-size: 16px; line-height: 30px; letter-spacing: 0.64px;
 }
-.hg-bullets li::before { content: ''; flex: 0 0 15px; height: 8px; background: url('assets/ui/icon-arrow.svg') center / contain no-repeat; }
+.hg-bullets li > span { background: var(--dark-blue); padding: 6px 8px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.hg-bullets li > span::before { content: ''; display: inline-block; width: 25px; height: 8px; vertical-align: 0.1em;
+  background: url('assets/ui/icon-arrow.svg') left center / 15px 8px no-repeat; }
 
 /* ── Buttons ── */
 .hg-btn {
@@ -209,7 +213,8 @@ body.theme-operation { background-color: var(--yellow); background-image: url('g
 .hg-card-h { font-family: var(--f-display); font-weight: 900; font-size: 20px; color: var(--dark-blue); align-self: stretch; text-align: left; }
 .hg-modal .hg-card-h { margin-bottom: -4px; }
 .hg-bullets.sm { gap: 7px; }
-.hg-bullets.sm li { background: none; color: var(--dark-blue); padding: 0; font-size: 13px; line-height: 16px; letter-spacing: 0.3px; }
+.hg-bullets.sm li { color: var(--dark-blue); font-size: 13px; line-height: 16px; letter-spacing: 0.3px; }
+.hg-bullets.sm li > span { background: none; padding: 0; }
 .hg-switch-row { align-self: stretch; display: flex; align-items: center; justify-content: space-between; background: none; border: 0; padding: 6px 0; cursor: pointer;
   font-family: var(--f-ui); font-weight: 700; font-size: 15px; color: var(--dark-blue); }
 .hg-switch { width: 44px; height: 26px; border-radius: 13px; background: rgba(0,31,59,0.25); position: relative; transition: background .2s; }
