@@ -97,16 +97,16 @@
     //    Final set (2026-11-11): 10 paths, 1200 × 1920. The art is taller than the path so it fills taller phones; the
     //    path itself sits in the top ~1200 px and the bottom of the art is cropped by the screen. Names: placeholders.
     var PATHS = [
-      { name: 'Path 1', art: 'assets/paths/path-01-art.webp', mask: 'assets/paths/path-01-hitbox.png', start: [270, 398], exit: [992, 222], par: 7000, slow: 28000 },
-      { name: 'Path 2', art: 'assets/paths/path-02-art.webp', mask: 'assets/paths/path-02-hitbox.png', start: [164, 1024], exit: [286, 242], par: 7000, slow: 28000 },
-      { name: 'Path 3', art: 'assets/paths/path-03-art.webp', mask: 'assets/paths/path-03-hitbox.png', start: [122, 246], exit: [938, 800], par: 7000, slow: 28000 },
-      { name: 'Path 4', art: 'assets/paths/path-04-art.webp', mask: 'assets/paths/path-04-hitbox.png', start: [160, 684], exit: [898, 208], par: 7000, slow: 28000 },
-      { name: 'Path 5', art: 'assets/paths/path-05-art.webp', mask: 'assets/paths/path-05-hitbox.png', start: [358, 310], exit: [982, 974], par: 7000, slow: 28000 },
-      { name: 'Path 6', art: 'assets/paths/path-06-art.webp', mask: 'assets/paths/path-06-hitbox.png', start: [972, 1012], exit: [256, 200], par: 7000, slow: 28000 },
-      { name: 'Path 7', art: 'assets/paths/path-07-art.webp', mask: 'assets/paths/path-07-hitbox.png', start: [652, 772], exit: [272, 274], par: 7000, slow: 28000 },
-      { name: 'Path 8', art: 'assets/paths/path-08-art.webp', mask: 'assets/paths/path-08-hitbox.png', start: [896, 1064], exit: [996, 400], par: 7000, slow: 28000 },
-      { name: 'Path 9', art: 'assets/paths/path-09-art.webp', mask: 'assets/paths/path-09-hitbox.png', start: [890, 464], exit: [208, 894], par: 7000, slow: 28000 },
-      { name: 'Path 10', art: 'assets/paths/path-10-art.webp', mask: 'assets/paths/path-10-hitbox.png', start: [166, 220], exit: [956, 980], par: 7000, slow: 28000 }
+      { name: 'Path 1', art: 'assets/paths/path-01-art.webp', mask: 'assets/paths/path-01-hitbox.png', start: [270, 398], exit: [992, 222], par: 2000, slow: 17000 },
+      { name: 'Path 2', art: 'assets/paths/path-02-art.webp', mask: 'assets/paths/path-02-hitbox.png', start: [164, 1024], exit: [286, 242], par: 2000, slow: 17000 },
+      { name: 'Path 3', art: 'assets/paths/path-03-art.webp', mask: 'assets/paths/path-03-hitbox.png', start: [122, 246], exit: [938, 800], par: 2000, slow: 17000 },
+      { name: 'Path 4', art: 'assets/paths/path-04-art.webp', mask: 'assets/paths/path-04-hitbox.png', start: [160, 684], exit: [898, 208], par: 2000, slow: 17000 },
+      { name: 'Path 5', art: 'assets/paths/path-05-art.webp', mask: 'assets/paths/path-05-hitbox.png', start: [358, 310], exit: [982, 974], par: 2000, slow: 17000 },
+      { name: 'Path 6', art: 'assets/paths/path-06-art.webp', mask: 'assets/paths/path-06-hitbox.png', start: [972, 1012], exit: [256, 200], par: 2000, slow: 17000 },
+      { name: 'Path 7', art: 'assets/paths/path-07-art.webp', mask: 'assets/paths/path-07-hitbox.png', start: [652, 772], exit: [272, 274], par: 2000, slow: 17000 },
+      { name: 'Path 8', art: 'assets/paths/path-08-art.webp', mask: 'assets/paths/path-08-hitbox.png', start: [896, 1064], exit: [996, 400], par: 2000, slow: 17000 },
+      { name: 'Path 9', art: 'assets/paths/path-09-art.webp', mask: 'assets/paths/path-09-hitbox.png', start: [890, 464], exit: [208, 894], par: 2000, slow: 17000 },
+      { name: 'Path 10', art: 'assets/paths/path-10-art.webp', mask: 'assets/paths/path-10-hitbox.png', start: [166, 220], exit: [956, 980], par: 2000, slow: 17000 }
     ];
     // Tweezers: 12 looks (Operation_paths_PROD_pince_01–12), one shared mask. A random look each turn.
     var TOOL_ARTS = [];
@@ -356,7 +356,9 @@
     }
     function breakdown(ms, t) {
       var P = PATHS[pathIdx];
-      var spd = 30 * HG.speed(ms, P.par, P.slow), prec = Math.max(0, 20 - 5 * t);
+      // Speed: +30 at par (2 s), then −2 pts per second, 0 at 17 s. Rounded, so the lines add up to the total.
+      // Precision: +10 for a clean run, −5 per wall touch (at most −20, so a bone out always scores ≥ 30).
+      var spd = Math.round(30 * HG.speed(ms, P.par, P.slow)), prec = t === 0 ? 10 : Math.max(-20, -5 * t);
       return { speed: spd, prec: prec, total: 50 + spd + prec };
     }
 
@@ -369,7 +371,7 @@
       var c = turnEnd('Bone out!', Math.round(b.total));
       var bd = el('div', 'breakdown');
       [['Bone out', '50'], ['Speed (' + HG.fmtSec(ms) + ')', '+ ' + Math.round(b.speed)],
-       ['Precision (' + touches + ' wall touch' + (touches === 1 ? '' : 'es') + ')', '+ ' + Math.round(b.prec)]].forEach(function (l, i) {
+       ['Precision (' + touches + ' wall touch' + (touches === 1 ? '' : 'es') + ')', (b.prec < 0 ? '− ' : '+ ') + Math.abs(b.prec)]].forEach(function (l, i) {
         var row = el('div'); row.appendChild(el('span', null, l[0])); row.appendChild(el('b', null, l[1])); bd.appendChild(row);
         setTimeout(function () { row.classList.add('in'); }, 250 * (i + 1));   // lines animate in one by one
       });
@@ -432,7 +434,7 @@
       logo: '../../assets/ui/logo-operation.webp',
       tip: 'The timer only starts when you touch the tweezers. Take your time to aim!',
       howTo: {
-        lines: ['Touch the tweezers to start', 'Slide along the path', "Touch a wall: BZZT! The tweezers jump back", 'Carry the bone out', "Don't lift your finger!", 'Bone out + speed score points'],
+        lines: ['Touch the tweezers to start', 'Slide along the path', "Touch a wall: BZZT!", 'Carry the bone out', "Don't lift your finger!", 'Bone out + speed score points'],
         cta: 'Got it'
       },
       currentPlayer: function () { return order[turn]; },
