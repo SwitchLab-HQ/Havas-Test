@@ -27,7 +27,9 @@
     .page.active { display:flex; }
 
     /* Header: dark band, Mini Games logo hanging over it, partners left, pill right */
-    .top { position:relative; flex-shrink:0; height:calc(80px + env(safe-area-inset-top,0px)); padding-top:env(safe-area-inset-top,0px); }
+    .top { position:relative; z-index:5; flex-shrink:0; height:calc(80px + env(safe-area-inset-top,0px)); padding-top:env(safe-area-inset-top,0px); margin-bottom:-15px; pointer-events:none; }
+    .top > * { pointer-events:auto; }
+    /* The 15 px under the dark band is see-through: the page body starts behind it (margin -15 / padding +15), so content scrolls under the hanging logo. */
     .top::before { content:''; position:absolute; left:0; right:0; top:0; height:calc(65px + env(safe-area-inset-top,0px)); background:var(--dark-blue); }
     .top .mg { position:absolute; left:50%; transform:translateX(-50%); top:calc(17px + env(safe-area-inset-top,0px)); width:136px; height:auto; }
     .top .partners { position:absolute; left:44px; top:calc(14px + env(safe-area-inset-top,0px)); width:35px; height:auto; }
@@ -39,7 +41,7 @@
     .iconbtn { width:44px; height:44px; border:none; background:transparent; display:flex; align-items:center; justify-content:center; cursor:pointer; }
     .iconbtn img { width:26px; height:26px; }
 
-    .body { flex:1; display:flex; flex-direction:column; align-items:center; gap:24px; padding:39px 25px 0; text-align:center; min-height:0; }
+    .body { flex:1; display:flex; flex-direction:column; align-items:center; gap:24px; padding:54px 25px 0; text-align:center; min-height:0; }
     .foot { flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:10px; padding:12px 25px calc(56px + env(safe-area-inset-bottom,0px)); }
     .head-block { width:100%; max-width:340px; display:flex; flex-direction:column; gap:16px; }
     .sub { font-family:var(--f-ui); font-size:15px; color:#fff; line-height:1.4; }
@@ -112,12 +114,12 @@
     .plist.compact .hg-avatar { width:44px; border-radius:15px; }
     #p-players.kb .players-sub, #p-players.kb .top .pillbtn { display:none; }
     #p-players.kb .hg-title { font-size:24px; }
-    #p-players.kb .body { overflow:hidden; padding-top:16px; padding-bottom:4px; gap:12px; }
+    #p-players.kb .body { overflow:hidden; padding-top:31px; padding-bottom:4px; gap:12px; }
     #p-players.kb .pcard { flex:0 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
     #p-players.kb .foot { padding-bottom:12px; }
 
     /* 05 Home */
-    #p-home .body { overflow-y:auto; padding:0 8px; gap:0; }
+    #p-home .body { overflow-y:auto; padding:15px 8px 0; gap:0; }
     .podium { position:relative; width:410px; max-width:none; height:250px; flex-shrink:0; margin:0 -10px; }
     .podium .base { position:absolute; left:0; right:0; top:107px; height:143px; width:100%; object-fit:cover; }
     .pod { position:absolute; display:flex; flex-direction:column; align-items:center; }
@@ -256,8 +258,7 @@
         </ul>
       </div>
       <div class="links">
-        <button class="js-sheet" data-sheet="terms"><span data-t="terms_tc">Terms &amp; Conditions</span><span>›</span></button>
-        <button class="js-sheet" data-sheet="privacy"><span data-t="terms_pn">Privacy notice</span><span>›</span></button>
+        <button class="js-privacy"><span data-t="terms_pn">Privacy policy</span><span>›</span></button>
       </div>
       <div class="check" id="terms-check"><div class="box" id="terms-box"></div><div data-t="terms_ok">I'm 16+, or a parent / guardian, and I accept the Terms</div></div>
     </div>
@@ -303,7 +304,7 @@
     <div class="lang-scroll hg-scroll" id="lang-list"></div>
   </div>
 
-  <!-- 03b Terms sheet · 05c Settings · 05e Clear · remove-player confirm -->
+  <!-- 05c Settings · 05e Clear · remove-player confirm -->
   <div class="avpick hg-scroll" id="avpick"><div class="avcard"><div class="ttl" data-t="choose_avatar">Choose your avatar</div><div class="avgrid" id="avgrid"></div></div></div>
   <div class="scrim" id="scrim"><div class="sheet" id="sheet"></div></div>
 
@@ -317,21 +318,19 @@
         intro_s3: 'Pass the phone each turn', lets_go: "Let's go",
         terms_head: 'Before you play', terms_1: 'Player names stay on this phone.', terms_2: 'Nothing is sent or shared.',
         terms_4: 'Your data is protected locally.', terms_3: 'Some games get you moving. Play safely.',
-        terms_tc: 'Terms & Conditions', terms_pn: 'Privacy notice',
-        terms_ok: "I'm 16+, or a parent / guardian, and I accept the Terms", accept: 'Accept & continue',
+        terms_pn: 'Privacy policy',
+        terms_ok: "I'm 16+, or a parent / guardian, and I've read the Privacy policy", accept: 'Accept & continue',
         who: "Who's playing?", add_1_8: 'Add 1 to 8 players.', add_player: 'Add player', max8: '8 players max', choose_avatar: 'Choose your avatar',
         lets_play: "Let's play!", player_n: 'Player {n}',
         dup: '{name} is already playing. Try "{name} B." or a nickname.',
         remove_q: 'Remove {name}?', remove_body: 'Their {pts} points will be lost.', remove: 'Remove', cancel: 'Cancel',
         leaderboard: 'LEADERBOARD', play: 'PLAY', coming_soon: 'Coming soon', play_to_score: 'Play a game to score',
         settings: 'Settings', language: 'Language', players: 'Players', n_players: '{n} players · Edit',
-        one_player: '1 player · Edit', sound: 'Sound', terms_privacy: 'Terms & privacy',
+        one_player: '1 player · Edit', sound: 'Sound', terms_privacy: 'Privacy policy',
         clear_lb: 'Clear leaderboard…', clear_lb_sub: "Sets everyone's points to 0. Players stay.",
         clear_q: 'Clear the leaderboard?', clear_body: "Everyone's points go back to 0. Players stay. You can't undo this.",
         clear_btn: 'Clear leaderboard', close: 'Close', on: 'On', off: 'Off',
         suggested: 'SUGGESTED', all_langs: 'ALL LANGUAGES', automatic: 'Automatic · {lang}', from_phone: 'From your phone settings',
-        tc_body: 'Placeholder. The Terms & Conditions text will be supplied by CPW / Hasbro legal, per language.',
-        pn_body: 'Placeholder. The privacy notice will be supplied by CPW / Hasbro legal, per language. Player names and scores stay on this phone and are cleared when the tab is closed.'
       },
       fr: {
         desktop_open: 'Ouvre cette page sur ton téléphone pour jouer !', loading: 'Chargement des jeux…',
@@ -340,21 +339,19 @@
         intro_s3: 'Passe le téléphone à chaque tour', lets_go: "C'est parti",
         terms_head: 'Avant de jouer', terms_1: 'Les prénoms restent sur ce téléphone.', terms_2: 'Rien n’est envoyé ni partagé.',
         terms_4: 'Tes données restent protégées ici.', terms_3: 'Certains jeux font bouger. Joue prudemment.',
-        terms_tc: 'Conditions générales', terms_pn: 'Politique de confidentialité',
-        terms_ok: "J'ai 16 ans ou plus, ou je suis parent / tuteur, et j'accepte les Conditions", accept: 'Accepter et continuer',
+        terms_pn: 'Politique de confidentialité',
+        terms_ok: "J'ai 16 ans ou plus, ou je suis parent / tuteur, et j'ai lu la Politique de confidentialité", accept: 'Accepter et continuer',
         who: 'Qui joue ?', add_1_8: 'Ajoute 1 à 8 joueurs.', add_player: 'Ajouter un joueur', max8: '8 joueurs max', choose_avatar: 'Choisis ton avatar',
         lets_play: "C'est parti !", player_n: 'Joueur {n}',
         dup: '{name} joue déjà. Essaie « {name} B. » ou un surnom.',
         remove_q: 'Retirer {name} ?', remove_body: 'Ses {pts} points seront perdus.', remove: 'Retirer', cancel: 'Annuler',
         leaderboard: 'CLASSEMENT', play: 'JOUER', coming_soon: 'Bientôt', play_to_score: 'Joue à un jeu pour marquer',
         settings: 'Réglages', language: 'Langue', players: 'Joueurs', n_players: '{n} joueurs · Modifier',
-        one_player: '1 joueur · Modifier', sound: 'Son', terms_privacy: 'Conditions et confidentialité',
+        one_player: '1 joueur · Modifier', sound: 'Son', terms_privacy: 'Politique de confidentialité',
         clear_lb: 'Effacer le classement…', clear_lb_sub: 'Remet les points de tous à 0. Les joueurs restent.',
         clear_q: 'Effacer le classement ?', clear_body: 'Les points de tous reviennent à 0. Les joueurs restent. Impossible d’annuler.',
         clear_btn: 'Effacer le classement', close: 'Fermer', on: 'Oui', off: 'Non',
         suggested: 'SUGGÉRÉES', all_langs: 'TOUTES LES LANGUES', automatic: 'Automatique · {lang}', from_phone: 'Selon les réglages du téléphone',
-        tc_body: 'Texte provisoire. Les Conditions générales seront fournies par CPW / Hasbro (juridique), par langue.',
-        pn_body: 'Texte provisoire. La politique de confidentialité sera fournie par CPW / Hasbro (juridique), par langue. Les prénoms et scores restent sur ce téléphone et sont effacés à la fermeture de l’onglet.'
       }
     });
     var t = HG.t, el = HG.el, clear = HG.clear, tap = HG.onTap;
@@ -444,7 +441,7 @@
       HG.acceptTerms();
       openPlayers(false);
     });
-    document.querySelectorAll('.js-sheet').forEach(function (b) { tap(b, function () { termsSheet(b.dataset.sheet); }); });
+    document.querySelectorAll('.js-privacy').forEach(function (b) { tap(b, openPrivacy); });
 
     // ── Sheets ──
     var scrim = document.getElementById('scrim'), sheet = document.getElementById('sheet'), onSheetClose = null;
@@ -474,16 +471,9 @@
       return h;
     }
 
-    // 03b · Terms / Privacy, without leaving the flow (a new tab would lose the session)
-    function termsSheet(which, back) {
-      openSheet(function (s) {
-        s.appendChild(sheetHead(t(which === 'privacy' ? 'terms_pn' : 'terms_tc')));
-        var body = el('div', 'sheet-scroll hg-scroll');
-        body.appendChild(el('p', null, t(which === 'privacy' ? 'pn_body' : 'tc_body')));
-        s.appendChild(body);
-        var c = el('button', 'hg-btn hg-btn-ghost', t('close')); tap(c, closeSheet); s.appendChild(c);
-      }, true, back);
-    }
+    // Privacy policy: Nestlé's page in a new tab, so this tab keeps the session
+    var PRIVACY_URL = 'https://www.nestle-cereals.com/global/privacy-policy';
+    function openPrivacy() { window.open(PRIVACY_URL, '_blank', 'noopener'); }
 
     // ── 04 · Players ──
     var editMode = false, origNames = [], errors = {};
@@ -595,17 +585,16 @@
       if (!validate()) return;
       var rows = readRows();
       if (!rows.some(function (r) { return r.value.trim(); })) return;
-      var names = [], renames = {};
-      rows.forEach(function (r, i) {
-        var n = r.value.trim();
-        if (!n) {   // empty rows become "Player N" (kept unique)
-          var k = i + 1; n = t('player_n', { n: k });
-          while (names.concat(rows.map(function (x) { return x.value.trim(); })).some(function (x) { return HG.sameName(x, n); })) n = t('player_n', { n: ++k });
-        }
-        names.push(n);
+      // Rows left empty are not added. An existing player whose name was cleared keeps it
+      // (removing a player is the ⊗ button, which asks first when they have points).
+      var names = [], renames = {}, avs = [];
+      rows.forEach(function (r) {
+        var n = r.value.trim() || r.orig || '';
+        if (!n || names.some(function (x) { return HG.sameName(x, n); })) return;
+        names.push(n); avs.push(r.av);
         if (r.orig && r.orig !== n) renames[r.orig] = n;   // rename keeps the points
       });
-      HG.setPlayers(names, renames, rows.map(function (r) { return r.av; }));
+      HG.setPlayers(names, renames, avs);
       document.activeElement && document.activeElement.blur();
       history.replaceState(null, '', location.pathname);  // browser back can't return to onboarding
       goHome();
@@ -747,7 +736,7 @@
           [t('sound'), HG.soundOn() ? t('on') : t('off'), function (b) {
             HG.setSound(!HG.soundOn()); b.lastChild.textContent = HG.soundOn() ? t('on') : t('off');
           }],
-          [t('terms_privacy'), '›', function () { termsSheet('terms', openSettings); }]
+          [t('terms_privacy'), '↗', openPrivacy]
         ];
         rows.forEach(function (r) {
           var b = el('button', 'srow'); b.appendChild(el('span', null, r[0])); b.appendChild(el('span', null, r[1]));

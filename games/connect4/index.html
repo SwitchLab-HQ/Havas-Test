@@ -71,7 +71,9 @@
     .mid { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
     .mid .vsx { font-family:var(--f-display); font-weight:900; font-size:22px; color:#fff; background:var(--dark-blue); border-radius:16px; padding:2px 8px; }
     .mid .lbl { font-family:var(--f-display); font-weight:900; font-size:13px; margin-top:4px; white-space:nowrap; }
-    .turnbar { width:100%; max-width:366px; min-height:46px; margin-top:12px; flex-shrink:0; border-radius:32px; background:var(--dark-blue); border:4px solid transparent;
+    /* The banner sits in a fixed-height slot (tall enough for two lines or the big end message), so the board never moves when the text wraps. */
+    .turnslot { width:100%; max-width:366px; height:73px; margin-top:12px; flex-shrink:0; display:flex; align-items:center; }
+    .turnbar { width:100%; max-width:366px; min-height:46px; flex-shrink:0; border-radius:32px; background:var(--dark-blue); border:4px solid transparent;
       display:flex; align-items:center; justify-content:center; gap:20px; padding:4px 16px; font-family:var(--f-display); font-weight:900; font-size:18px; text-transform:uppercase; }
     .turnbar svg { width:31px; height:22px; flex-shrink:0; }
     .turnbar.y { border-color:var(--yellow); } .turnbar.y svg { color:var(--yellow); transform:scaleX(-1); }
@@ -79,7 +81,7 @@
     .turnbar .sp { width:31px; flex-shrink:0; }
     .turnbar.big { min-height:73px; font-size:22px; }
     .boardbox { flex:1; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; touch-action:none; min-height:0; }
-    .boardinner { --w: min(356px, 92vw, calc((100vh - 290px) * 356 / 362)); width:var(--w); position:relative; }
+    .boardinner { --w: min(356px, 92vw, calc((100vh - 317px) * 356 / 362)); width:var(--w); position:relative; }
     .ghostrow { position:relative; height:calc(var(--w) * 54 / 356); }
     .ghost { position:absolute; top:0; width:calc(var(--w) * 48 / 356); height:calc(var(--w) * 48 / 356); display:flex; align-items:center; justify-content:center; }
     .ghost img { width:100%; opacity:0.6; }
@@ -122,7 +124,7 @@
         <div class="mid"><div class="vsx">VS</div><div class="lbl" id="mlabel"></div></div>
         <div class="ptag r rd" id="pR"></div>
       </div>
-      <div class="turnbar" id="turnbar"></div>
+      <div class="turnslot"><div class="turnbar" id="turnbar"></div></div>
       <div class="boardbox" id="boardbox">
         <div class="boardinner" id="boardinner">
           <div class="colhl" id="colhl"></div>
